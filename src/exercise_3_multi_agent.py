@@ -3,9 +3,9 @@ import numpy as np
 from gym import Env
 from typing import Sequence
 
-from lib import Agent
-from lib.utils import compare_results
-from lib.share_or_take import ShareOrTake
+from environment import Agent
+from environment.utils import compare_results
+from environment.share_or_take import ShareOrTake
 
 from src.exercise_1_single_random_agent import RandomAgent
 from src.exercise_2_single_random_vs_greedy import GreedyAgent

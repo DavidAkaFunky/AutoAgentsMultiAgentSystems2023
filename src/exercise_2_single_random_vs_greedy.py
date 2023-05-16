@@ -4,10 +4,10 @@ import argparse
 import numpy as np
 from scipy.spatial.distance import cityblock
 
-from lib import Agent
-from lib.utils import compare_results
-from lib.wrappers import SingleAgentWrapper
-from lib.share_or_take import ShareOrTake
+from environment import Agent
+from environment.utils import compare_results
+from environment.wrappers import SingleAgentWrapper
+from environment.share_or_take import ShareOrTake
 
 from src.exercise_1_single_random_agent import run_single_agent, RandomAgent
 

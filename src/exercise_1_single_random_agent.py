@@ -3,10 +3,10 @@ import argparse
 import numpy as np
 from gym import Env
 
-from lib import Agent
-from lib.utils import compare_results
-from lib.wrappers import SingleAgentWrapper
-from lib.share_or_take import ShareOrTake
+from environment import Agent
+from environment.utils import compare_results
+from environment.wrappers import SingleAgentWrapper
+from environment.share_or_take import ShareOrTake
 
 rng = np.random.default_rng()
 
