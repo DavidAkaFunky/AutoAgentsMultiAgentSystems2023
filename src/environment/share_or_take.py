@@ -88,7 +88,8 @@ class ShareOrTake(gym.Env):
         food_pos = []
         for (row, col) in self.food_pos:
             if abs(row - agent_row) <= agent.vision_range and abs(col - agent_col) <= agent.vision_range:
-                agents_pos.append((col, row))
+                food_pos.append((col, row))
+
 
         return agents_pos, food_pos
 
@@ -149,29 +150,20 @@ class ShareOrTake(gym.Env):
     def update_food_view(self, pos):
         self.grid[pos[0]][pos[1]] = PRE_IDS['food']
 
-    def _neighbour_agents(self, pos):
+    def _neighbour_agents(self, agent):
         # check if agent is in neighbour
-        _count = 0
-        neighbours_xy = []
-        if self.is_valid([pos[0] + 1, pos[1]]) and PRE_IDS['agent'] in self.grid[pos[0] + 1][pos[1]]:
-            _count += 1
-            neighbours_xy.append([pos[0] + 1, pos[1]])
-        if self.is_valid([pos[0] - 1, pos[1]]) and PRE_IDS['agent'] in self.grid[pos[0] - 1][pos[1]]:
-            _count += 1
-            neighbours_xy.append([pos[0] - 1, pos[1]])
-        if self.is_valid([pos[0], pos[1] + 1]) and PRE_IDS['agent'] in self.grid[pos[0]][pos[1] + 1]:
-            _count += 1
-            neighbours_xy.append([pos[0], pos[1] + 1])
-        if self.is_valid([pos[0], pos[1] - 1]) and PRE_IDS['agent'] in self.grid[pos[0]][pos[1] - 1]:
-            neighbours_xy.append([pos[0], pos[1] - 1])
-            _count += 1
-
+        neighbours_xy = [pos for pos in self.get_neighbour_coordinates(agent) if PRE_IDS['agent'] in self.grid[pos[0]][pos[1]]]
         agent_id = []
         for x, y in neighbours_xy:
             agent_id.append(int(self.grid[x][y].split(PRE_IDS['agent'])[1]) - 1)
-        return _count, agent_id
+        return len(neighbours_xy), agent_id
 
-    def get_neighbour_coordinates(self, pos):
+    def get_neighbour_coordinates(self, agent):
+        pos = agent.get_position()
+        vision = agent.vision_range
+        return [[x, y] for x in range(max(0, pos[0]) - vision, min(self.grid_shape[0], pos[0] + vision) + 1) for y in
+                range(max(0, pos[1]) - vision, min(self.grid_shape[1], pos[1] + vision) + 1) if
+                self.is_valid([x, y]) and (x != pos[0] or y != pos[1])]
         neighbours = []
         if self.is_valid([pos[0] + 1, pos[1]]):
             neighbours.append([pos[0] + 1, pos[1]])
@@ -186,9 +178,12 @@ class ShareOrTake(gym.Env):
     def render(self, mode='human'):
         img = copy.copy(self.base_img)
         for agent_i in self.agents:
-            pos = self.agents[agent_i].get_position()
-            for neighbour in self.get_neighbour_coordinates(pos):
+            agent = self.agents[agent_i]
+            for neighbour in self.get_neighbour_coordinates(agent):
                 fill_cell(img, neighbour, cell_size=CELL_SIZE, fill=AGENT_NEIGHBORHOOD_COLOR, margin=0.1)
+        
+        for agent_i in self.agents:
+            pos = self.agents[agent_i].get_position()
             fill_cell(img, pos, cell_size=CELL_SIZE, fill=AGENT_NEIGHBORHOOD_COLOR, margin=0.1)
 
             draw_circle(img, pos, cell_size=CELL_SIZE, fill=AGENT_COLOR)

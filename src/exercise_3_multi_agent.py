@@ -59,15 +59,15 @@ if __name__ == '__main__':
     teams = {
         "Greedy Team": [
             BasicAgent(greedy=True),
-            BasicAgent(greedy=True),
-            BasicAgent(greedy=False),
-            BasicAgent(greedy=False)
+            #BasicAgent(greedy=True),
+            #BasicAgent(greedy=False),
+            #BasicAgent(greedy=False)
         ],
     }
 
     results = {}
     for team, agents in teams.items():
-        environment = ShareOrTake(agents, grid_shape=(7, 7), n_food=2, max_steps=15)
+        environment = ShareOrTake(agents, grid_shape=(9, 9), n_food=2, max_steps=15)
         result = run_multi_agent(environment, agents, opt.episodes, render=True)
         results[team] = result
 

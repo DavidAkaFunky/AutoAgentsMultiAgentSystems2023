@@ -16,7 +16,7 @@ class BasicAgent(Agent):
 
     def __init__(self, greedy):
         super(BasicAgent, self).__init__(f"Basic Agent")
-        self.vision_range = 1
+        self.vision_range = 2
         self.living_cost = 1
         self.move_cost = 2
         self.pos = None
