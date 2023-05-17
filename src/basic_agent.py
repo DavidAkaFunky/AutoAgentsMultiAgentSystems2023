@@ -14,28 +14,42 @@ class BasicAgent(Agent):
     A baseline agent for the ShareOrTake environment.
     """
 
-    def __init__(self, agent_id, greedy):
+    def __init__(self, greedy):
         super(BasicAgent, self).__init__(f"Basic Agent")
-        self.agent_id = agent_id
+        self.vision_range = 1
+        self.living_cost = 1
+        self.move_cost = 2
+        self.pos = None
         self.n_actions = N_ACTIONS
-        self.greedy = greedy
+        self.is_greedy = greedy
+        self.has_eaten = False
 
+    # TODO: Replace this with actions - the last option should ALWAYS be STAY
     def action(self) -> int:
+        print(self.pos, self.observation)
+        print("-------------")
         agents_positions = self.observation[0]
         food_positions = self.observation[1]
-        agent_position = agents_positions[self.agent_id]
-        closest_food_position = self.closest_food(agent_position, food_positions)
-        return self.direction_to_go(agent_position, closest_food_position)
+        closest_food_position = self.closest_food(self.pos, food_positions)
+        return self.direction_to_go(self.pos, closest_food_position)
 
     # ################# #
     # Auxiliary Methods #
     # ################# #
+
+    def set_position(self, pos):
+        self.pos = pos
+
+    def get_position(self):
+        return self.pos
 
     def direction_to_go(self, agent_position, food_position):
         """
         Given the position of the agent and the position of a food,
         returns the action to take in order to close the distance
         """
+        if food_position is None:
+            return STAY
         distances = np.array(food_position) - np.array(agent_position)
         abs_distances = np.absolute(distances)
         if abs_distances[0] > abs_distances[1]:
@@ -46,6 +60,8 @@ class BasicAgent(Agent):
             roll = random.uniform(0, 1)
             return self._close_horizontally(distances) if roll > 0.5 else self._close_vertically(distances)
 
+
+    # TODO: Change this to show more than one option
     def closest_food(self, agent_position, food_positions):
         """
         Given the positions of an agent and a sequence of positions of all food,

@@ -10,7 +10,7 @@ from environment.share_or_take import ShareOrTake
 
 from basic_agent import BasicAgent
 
-def run_multi_agent(environment: Env, agents: Sequence[Agent], n_episodes: int, render=False) -> np.ndarray:
+def run_multi_agent(environment: Env, agents: list[Agent], n_episodes: int, render=False) -> np.ndarray:
 
     results = np.zeros(n_episodes)
 
@@ -35,6 +35,7 @@ def run_multi_agent(environment: Env, agents: Sequence[Agent], n_episodes: int, 
 
             for agent_id, agent in enumerate(agents):
                 agent.feedback(rewards[agent_id])
+                agent.has_eaten = False # Reset
 
             if finished:
                 break
@@ -43,8 +44,7 @@ def run_multi_agent(environment: Env, agents: Sequence[Agent], n_episodes: int, 
 
         if render:
             environment.render()
-        
-        environment.close()
+            environment.close()
 
     return results
 
@@ -56,26 +56,21 @@ if __name__ == '__main__':
     parser.add_argument("--episodes", type=int, default=100)
     opt = parser.parse_args()
 
-    # 1 - Setup the environment
-    environment = ShareOrTake(grid_shape=(7, 7), initial_n_agents=6, n_food=2, max_steps=4)
-
-    # 2 - Setup the teams
     teams = {
         "Greedy Team": [
-            BasicAgent(agent_id=0, greedy=True),
-            BasicAgent(agent_id=1, greedy=True),
-            BasicAgent(agent_id=2, greedy=False),
-            BasicAgent(agent_id=3, greedy=False)
+            BasicAgent(greedy=True),
+            BasicAgent(greedy=True),
+            BasicAgent(greedy=False),
+            BasicAgent(greedy=False)
         ],
     }
 
-    # 3 - Evaluate teams
     results = {}
     for team, agents in teams.items():
+        environment = ShareOrTake(agents, grid_shape=(7, 7), n_food=2, max_steps=15)
         result = run_multi_agent(environment, agents, opt.episodes, render=True)
         results[team] = result
 
-    # 4 - Compare results
     compare_results(
         results,
         title="Teams Comparison on 'Share or Take' Environment",
