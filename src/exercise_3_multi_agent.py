@@ -26,16 +26,8 @@ def run_multi_agent(environment: Env, agents: list[Agent], n_episodes: int, rend
                 time.sleep(0.5)
             
             steps += 1
-            actions = []
-            for agent_id, agent in enumerate(agents):
-                agent.see(observations[agent_id])
-                actions.append(agent.action())
-                
-            observations, rewards, finished = environment.step(actions)
-
-            for agent_id, agent in enumerate(agents):
-                agent.feedback(rewards[agent_id])
-                agent.has_eaten = False # Reset
+            
+            observations, finished = environment.step(observations)
 
             if finished:
                 break

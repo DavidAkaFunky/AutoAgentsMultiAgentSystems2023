@@ -49,12 +49,13 @@ class ShareOrTake(gym.Env):
         for agent in agents:
             while True:
                 pos = [self.np_random.randint(0, self.grid_shape[0] - 1),
-                    self.np_random.randint(0, self.grid_shape[1] - 1)]
+                       self.np_random.randint(0, self.grid_shape[1] - 1)]
                 if self.is_cell_vacant(pos):
                     break
+            agent.id = self.agent_id
             agent.set_position(pos)
             self.agents[self.agent_id] = agent
-            self.update_agent_view(self.agent_id)
+            self.update_agent_view(agent)
             self.agent_id += 1
 
     def add_remaining_food(self):
@@ -74,6 +75,9 @@ class ShareOrTake(gym.Env):
 
     def reset(self):
         return [self.observation(id) for id in self.agents]
+    
+    def agent_can_see(self, agent_row, agent_col, object_row, object_col, vision_range):
+        return abs(object_row - agent_row) <= vision_range and abs(object_col - agent_col) <= vision_range
 
     def observation(self, id):
         agent = self.agents[id]
@@ -82,31 +86,55 @@ class ShareOrTake(gym.Env):
         agents_pos = []
         for other_agent_id in self.agents:
             [row, col] = self.agents[other_agent_id].get_position()
-            if abs(row - agent_row) <= agent.vision_range and abs(col - agent_col) <= agent.vision_range:
+            if self.agent_can_see(row, col, agent_row, agent_col, agent.vision_range):
                 agents_pos.append((col, row))
 
         food_pos = []
         for (row, col) in self.food_pos:
-            if abs(row - agent_row) <= agent.vision_range and abs(col - agent_col) <= agent.vision_range:
+            if self.agent_can_see(row, col, agent_row, agent_col, agent.vision_range):
                 food_pos.append((col, row))
-
 
         return agents_pos, food_pos
 
-    def step(self, agents_action):
+    def step(self, observations):
         self.step_count += 1
         finished = False
-        rewards = [0 for _ in self.agents]
-        
-        # TODO: This will receive a queue of actions, iterate over them
-        # and stop once they have moved or ran out of options
-        for agent_i, action in enumerate(agents_action):
-            self.update_agent_pos(agent_i, action)
 
-        if (self.step_count >= self.max_steps):
+        # Everyone loses energy just to live!
+        rewards = {id: -self.agents[id].living_cost for id in self.agents}
+        
+        # TODO: Eating stage
+
+        # Add food if any was eaten
+        self.add_remaining_food()
+
+        # Randomise the order in which agents act (for fairness)
+        order = list(self.agents.keys())
+        random.shuffle(order)
+
+        # Get each agent's set of actions
+        for id in order:
+            agent = self.agents[id]
+            agent.see(observations[id])
+            for action in agent.action(): 
+                if self.update_agent_pos(agent, action):
+                    break
+
+        if self.step_count >= self.max_steps:
             finished = True
 
-        return [self.observation(id) for id in self.agents], rewards, finished
+        for id in self.agents:
+            agent = self.agents[id]
+            agent.feedback(rewards[id])
+            if agent.energy <= 0:
+                self.kill_agent(agent)
+                if len(self.agents) == 0:
+                    finished = True
+                    break
+            else:
+                agent.has_eaten = False # Reset the agent's has_eaten flag
+
+        return [self.observation(id) for id in self.agents], finished
 
     def draw_base_img(self):
         self.base_img = draw_grid(self.grid_shape[0], self.grid_shape[1], cell_size=CELL_SIZE, fill='white')
@@ -121,8 +149,7 @@ class ShareOrTake(gym.Env):
     def is_cell_vacant(self, pos):
         return self.is_valid(pos) and (self.grid[pos[0]][pos[1]] == PRE_IDS['empty'])
 
-    def update_agent_pos(self, agent_i, move):
-        agent = self.agents[agent_i]
+    def update_agent_pos(self, agent, move):
         curr_pos = agent.get_position()
         next_pos = None
         if move == 0:    # down
@@ -139,13 +166,23 @@ class ShareOrTake(gym.Env):
             raise Exception('Action Not found!')
 
         if next_pos is not None and self.is_cell_vacant(next_pos):
+            if 0 <= move <= 3:
+                agent.energy -= agent.move_cost # Spend energy to move
             agent.set_position(next_pos)
             self.grid[curr_pos[0]][curr_pos[1]] = PRE_IDS['empty']
-            self.update_agent_view(agent_i)
+            self.update_agent_view(agent)
+            return True
+        
+        return False
 
-    def update_agent_view(self, agent_i):
-        pos = self.agents[agent_i].get_position()
-        self.grid[pos[0]][pos[1]] = PRE_IDS['agent'] + str(agent_i + 1)
+    def kill_agent(self, agent):
+        pos = agent.get_position()
+        self.grid[pos[0]][pos[1]] = PRE_IDS['empty']
+        del agents
+
+    def update_agent_view(self, agent):
+        pos = agent.get_position()
+        self.grid[pos[0]][pos[1]] = PRE_IDS['agent'] + str(agent.id + 1)
 
     def update_food_view(self, pos):
         self.grid[pos[0]][pos[1]] = PRE_IDS['food']
@@ -161,19 +198,10 @@ class ShareOrTake(gym.Env):
     def get_neighbour_coordinates(self, agent):
         pos = agent.get_position()
         vision = agent.vision_range
-        return [[x, y] for x in range(max(0, pos[0]) - vision, min(self.grid_shape[0], pos[0] + vision) + 1) for y in
-                range(max(0, pos[1]) - vision, min(self.grid_shape[1], pos[1] + vision) + 1) if
-                self.is_valid([x, y]) and (x != pos[0] or y != pos[1])]
-        neighbours = []
-        if self.is_valid([pos[0] + 1, pos[1]]):
-            neighbours.append([pos[0] + 1, pos[1]])
-        if self.is_valid([pos[0] - 1, pos[1]]):
-            neighbours.append([pos[0] - 1, pos[1]])
-        if self.is_valid([pos[0], pos[1] + 1]):
-            neighbours.append([pos[0], pos[1] + 1])
-        if self.is_valid([pos[0], pos[1] - 1]):
-            neighbours.append([pos[0], pos[1] - 1])
-        return neighbours
+        return [[x, y] for x in range(max(0, pos[0]) - vision, min(self.grid_shape[0], pos[0] + vision) + 1) 
+                       for y in range(max(0, pos[1]) - vision, min(self.grid_shape[1], pos[1] + vision) + 1)
+                       if self.is_valid([x, y]) and (x != pos[0] or y != pos[1])]
+
 
     def render(self, mode='human'):
         img = copy.copy(self.base_img)
