@@ -16,7 +16,7 @@ def run_multi_agent(environment: Env, agents: list[Agent], n_episodes: int, rend
 
     for episode in range(n_episodes):
 
-        print(f"Starting episode {episode + 1} in {n_episodes}")
+        print("Starting episode {} in {}".format(episode + 1, n_episodes))
         steps = 0
         finished = False
         observations = environment.reset(agents)

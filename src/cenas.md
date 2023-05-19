@@ -5,3 +5,14 @@ Como organizar os movimentos:
     - Com isso, obter uma queue de direções possíveis
 - No step, **se não tiver comido**, iterar pela lista de direções possíveis até ser encontrado um movimento possível
     - Comida também conta como ocupada!
+
+Métricas:
+- Natalidade
+    - Geral
+    - Dividida por tipos (greedy e pacífico)
+- Mortalidade
+    - Geral
+    - Dividida por tipos (greedy e pacífico)
+- Energia média
+    - Geral
+    - Dividida por tipos (greedy e pacífico)
