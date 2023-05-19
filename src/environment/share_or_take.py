@@ -1,8 +1,8 @@
 import copy
 import logging
 import random
-
 import numpy as np
+import copy
 
 logger = logging.getLogger(__name__)
 
@@ -16,7 +16,7 @@ class ShareOrTake(gym.Env):
 
     metadata = {'render.modes': ['human', 'rgb_array']}
 
-    def __init__(self, agents, grid_shape=(50, 50), n_food=10, max_steps=100):
+    def __init__(self, grid_shape=(50, 50), n_food=10, max_steps=100):
 
         # General grid parameters
         self.grid_shape = grid_shape
@@ -26,6 +26,15 @@ class ShareOrTake(gym.Env):
         # RNG seed
         self.seed()
 
+        # Food
+        self.n_food = n_food
+        self.food_energy = 10
+
+        # Rendering
+        self.draw_base_img()
+        self.viewer = None
+
+    def reset(self, agents):
         # Agents
         self.grid = self.create_grid()
         self.agent_id = 0 # Used to assign unique agent IDs
@@ -33,14 +42,11 @@ class ShareOrTake(gym.Env):
         self.add_all_agents(agents)
 
         # Food
-        self.n_food = n_food
         self.available_n_food = 0
         self.food_pos = set()
         self.add_remaining_food()
 
-        # Rendering
-        self.draw_base_img()
-        self.viewer = None
+        return {id: self.observation(id) for id in self.agents}
 
     def add_all_agents(self, agents):
         """
@@ -58,6 +64,20 @@ class ShareOrTake(gym.Env):
             self.update_agent_view(agent)
             self.agent_id += 1
 
+    def reproduce_agent(self, agent):
+        print("Agent {} reproduced to form agent {}!".format(agent.id, self.agent_id))
+        new_agent = copy.deepcopy(agent)
+        while True:
+            pos = [self.np_random.randint(0, self.grid_shape[0] - 1),
+                   self.np_random.randint(0, self.grid_shape[1] - 1)]
+            if self.is_cell_vacant(pos):
+                break
+        new_agent.reset_parameters(self.agent_id)
+        new_agent.set_position(pos)
+        self.agents[self.agent_id] = new_agent
+        self.update_agent_view(new_agent)
+        self.agent_id += 1
+
     def add_remaining_food(self):
         """ 
         Add food to the grid until the desired number is reached.
@@ -72,9 +92,6 @@ class ShareOrTake(gym.Env):
             self.food_pos.add(pos)
             self.available_n_food += 1
             self.update_food_view(pos)
-
-    def reset(self):
-        return [self.observation(id) for id in self.agents]
     
     def agent_can_see(self, agent_row, agent_col, object_row, object_col, vision_range):
         return abs(object_row - agent_row) <= vision_range and abs(object_col - agent_col) <= vision_range
@@ -103,7 +120,22 @@ class ShareOrTake(gym.Env):
         # Everyone loses energy just to live!
         rewards = {id: -self.agents[id].living_cost for id in self.agents}
         
-        # TODO: Eating stage
+        # Eating stage
+        food_pos = copy.deepcopy(self.food_pos) # Allow food to be eaten during the loop
+        for pos in food_pos:
+            neighbours, ids = self.get_neighbour_agents(pos, 1)
+            if neighbours == 0:
+                continue
+            elif neighbours == 1:
+                agent = self.agents[ids[0]]
+                self.agent_eat(agent, pos)
+            else:
+                if neighbours > 2:
+                    # Choose two random agents to share the food
+                    ids = random.sample(ids, 2)
+                agent1 = self.agents[ids[0]]
+                agent2 = self.agents[ids[1]]
+                self.share_or_take(agent1, agent2, pos)
 
         # Add food if any was eaten
         self.add_remaining_food()
@@ -116,25 +148,33 @@ class ShareOrTake(gym.Env):
         for id in order:
             agent = self.agents[id]
             agent.see(observations[id])
+
+            # An agent can either eat or move in a given step
+            if agent.has_eaten:
+                continue
             for action in agent.action(): 
-                if self.update_agent_pos(agent, action):
+                if self.update_agent_pos(agent, action, rewards):
                     break
 
         if self.step_count >= self.max_steps:
             finished = True
 
-        for id in self.agents:
+        agents = copy.deepcopy(self.agents) # Allow agents to be modified during feedback
+        for id in agents:
             agent = self.agents[id]
             agent.feedback(rewards[id])
             if agent.energy <= 0:
-                self.kill_agent(agent)
+                self.kill_agent(id)
                 if len(self.agents) == 0:
                     finished = True
                     break
             else:
                 agent.has_eaten = False # Reset the agent's has_eaten flag
+                # TODO: Only enable this after fixing the wall movement bug
+                # if agent.energy >= agent.reproduction_threshold:
+                #    self.reproduce_agent(agent)
 
-        return [self.observation(id) for id in self.agents], finished
+        return {id: self.observation(id) for id in self.agents}, finished
 
     def draw_base_img(self):
         self.base_img = draw_grid(self.grid_shape[0], self.grid_shape[1], cell_size=CELL_SIZE, fill='white')
@@ -149,7 +189,7 @@ class ShareOrTake(gym.Env):
     def is_cell_vacant(self, pos):
         return self.is_valid(pos) and (self.grid[pos[0]][pos[1]] == PRE_IDS['empty'])
 
-    def update_agent_pos(self, agent, move):
+    def update_agent_pos(self, agent, move, rewards):
         curr_pos = agent.get_position()
         next_pos = None
         if move == 0:    # down
@@ -163,11 +203,11 @@ class ShareOrTake(gym.Env):
         elif move == 4:  # no-op
             pass
         else:
-            raise Exception('Action Not found!')
+            raise Exception('Action not found!')
 
         if next_pos is not None and self.is_cell_vacant(next_pos):
             if 0 <= move <= 3:
-                agent.energy -= agent.move_cost # Spend energy to move
+                rewards[agent.id] -= agent.move_cost # Spend energy to move
             agent.set_position(next_pos)
             self.grid[curr_pos[0]][curr_pos[1]] = PRE_IDS['empty']
             self.update_agent_view(agent)
@@ -175,39 +215,70 @@ class ShareOrTake(gym.Env):
         
         return False
 
-    def kill_agent(self, agent):
-        pos = agent.get_position()
+    def kill_agent(self, id):
+        print("Agent {} has died!".format(id))
+        pos = self.agents[id].get_position()
         self.grid[pos[0]][pos[1]] = PRE_IDS['empty']
-        del agents
+        self.agents.pop(id)
+
+    def share_or_take(self, agent1, agent2, pos):
+        if agent1.is_greedy and agent2.is_greedy:
+            print("Agents {} and {} are fighting over food at {}!".format(agent1.id, agent2.id, pos))
+            pass # The energy earned with food is lost during the fight
+        elif agent1.is_greedy:
+            print("Agent {} is stealing food from {} at {}!".format(agent1.id, agent2.id, pos))
+            agent1.energy += self.food_energy * 0.75
+            agent2.energy += self.food_energy * 0.25
+        elif agent2.is_greedy:
+            print("Agent {} is stealing food from {} at {}!".format(agent2.id, agent1.id, pos))
+            agent1.energy += self.food_energy * 0.25
+            agent2.energy += self.food_energy * 0.75
+        else:
+            print("Agents {} and {} are sharing food at {}!".format(agent2.id, agent1.id, pos))
+            agent1.energy += self.food_energy * 0.5
+            agent2.energy += self.food_energy * 0.5
+        agent1.has_eaten = True
+        agent2.has_eaten = True
+        self.food_pos.remove(pos)
+        self.available_n_food -= 1
+        self.grid[pos[0]][pos[1]] = PRE_IDS['empty']
+
+    def agent_eat(self, agent, pos):
+        print("Agent {} is eating food alone at {}!".format(agent.id, pos))
+        agent.has_eaten = True
+        self.food_pos.remove(pos)
+        self.available_n_food -= 1
+        agent.energy += self.food_energy
+        self.grid[pos[0]][pos[1]] = PRE_IDS['empty']
 
     def update_agent_view(self, agent):
         pos = agent.get_position()
-        self.grid[pos[0]][pos[1]] = PRE_IDS['agent'] + str(agent.id + 1)
+        self.grid[pos[0]][pos[1]] = PRE_IDS['agent'] + str(agent.id)
 
     def update_food_view(self, pos):
         self.grid[pos[0]][pos[1]] = PRE_IDS['food']
 
-    def _neighbour_agents(self, agent):
-        # check if agent is in neighbour
-        neighbours_xy = [pos for pos in self.get_neighbour_coordinates(agent) if PRE_IDS['agent'] in self.grid[pos[0]][pos[1]]]
-        agent_id = []
+    def get_neighbour_agents(self, object_pos, vision):
+        # Check if agent is in neighbour
+        neighbours_xy = [pos for pos in self.get_neighbour_coordinates(object_pos, vision) if PRE_IDS['agent'] in self.grid[pos[0]][pos[1]]]
+        agent_ids = []
         for x, y in neighbours_xy:
-            agent_id.append(int(self.grid[x][y].split(PRE_IDS['agent'])[1]) - 1)
-        return len(neighbours_xy), agent_id
+            agent_ids.append(int(self.grid[x][y].split(PRE_IDS['agent'])[1]))
+        return len(neighbours_xy), agent_ids
 
-    def get_neighbour_coordinates(self, agent):
-        pos = agent.get_position()
-        vision = agent.vision_range
+    def get_agent_neighbour_coordinates(self, agent):
+        return self.get_neighbour_coordinates(agent.get_position(), agent.vision_range)
+    
+    def get_neighbour_coordinates(self, pos, vision):
         return [[x, y] for x in range(max(0, pos[0]) - vision, min(self.grid_shape[0], pos[0] + vision) + 1) 
                        for y in range(max(0, pos[1]) - vision, min(self.grid_shape[1], pos[1] + vision) + 1)
                        if self.is_valid([x, y]) and (x != pos[0] or y != pos[1])]
-
 
     def render(self, mode='human'):
         img = copy.copy(self.base_img)
         for agent_i in self.agents:
             agent = self.agents[agent_i]
-            for neighbour in self.get_neighbour_coordinates(agent):
+            for neighbour in self.get_agent_neighbour_coordinates(agent):
                 fill_cell(img, neighbour, cell_size=CELL_SIZE, fill=AGENT_NEIGHBORHOOD_COLOR, margin=0.1)
         
         for agent_i in self.agents:
@@ -215,7 +286,7 @@ class ShareOrTake(gym.Env):
             fill_cell(img, pos, cell_size=CELL_SIZE, fill=AGENT_NEIGHBORHOOD_COLOR, margin=0.1)
 
             draw_circle(img, pos, cell_size=CELL_SIZE, fill=AGENT_COLOR)
-            write_cell_text(img, text=str(agent_i + 1), pos=pos, cell_size=CELL_SIZE,
+            write_cell_text(img, text=str(agent_i), pos=pos, cell_size=CELL_SIZE,
                             fill='white', margin=0.4)
 
         for food in self.food_pos:

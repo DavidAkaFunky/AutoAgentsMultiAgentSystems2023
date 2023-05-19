@@ -38,13 +38,9 @@ class Agent(ABC):
     def __init__(self, name: str):
         self.name = name
         self.observation = None
-        self.reward = 0
 
     def see(self, observation: np.ndarray):
         self.observation = observation
-
-    def feedback(self, reward: float):
-        self.reward += reward
 
     @abstractmethod
     def action(self) -> int:

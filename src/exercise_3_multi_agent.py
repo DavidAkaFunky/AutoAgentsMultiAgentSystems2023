@@ -16,9 +16,10 @@ def run_multi_agent(environment: Env, agents: list[Agent], n_episodes: int, rend
 
     for episode in range(n_episodes):
 
+        print(f"Starting episode {episode + 1} in {n_episodes}")
         steps = 0
         finished = False
-        observations = environment.reset()
+        observations = environment.reset(agents)
 
         while True:
             if render:
@@ -27,6 +28,7 @@ def run_multi_agent(environment: Env, agents: list[Agent], n_episodes: int, rend
             
             steps += 1
             
+            # TODO: Add statistics like fertility rate, average energy, mortality rate, etc.
             observations, finished = environment.step(observations)
 
             if finished:
@@ -34,9 +36,9 @@ def run_multi_agent(environment: Env, agents: list[Agent], n_episodes: int, rend
 
         results[episode] = steps
 
-        if render:
-            environment.render()
-            environment.close()
+    if render:
+        environment.render()
+        environment.close()
 
     return results
 
@@ -51,16 +53,17 @@ if __name__ == '__main__':
     teams = {
         "Greedy Team": [
             BasicAgent(greedy=True),
-            #BasicAgent(greedy=True),
-            #BasicAgent(greedy=False),
-            #BasicAgent(greedy=False)
+            BasicAgent(greedy=True),
+            BasicAgent(greedy=False),
+            BasicAgent(greedy=False)
         ],
     }
 
     results = {}
     for team, agents in teams.items():
-        environment = ShareOrTake(agents, grid_shape=(9, 9), n_food=2, max_steps=15)
-        result = run_multi_agent(environment, agents, opt.episodes, render=True)
+        environment = ShareOrTake(grid_shape=(15, 15), n_food=5, max_steps=10)
+        # result = run_multi_agent(environment, agents, opt.episodes, render=True)
+        result = run_multi_agent(environment, agents, 5, render=True)
         results[team] = result
 
     compare_results(

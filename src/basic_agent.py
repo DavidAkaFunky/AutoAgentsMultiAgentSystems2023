@@ -16,26 +16,35 @@ class BasicAgent(Agent):
 
     def __init__(self, greedy):
         super(BasicAgent, self).__init__(f"Basic Agent")
+        self.reproduction_threshold = 25
         self.vision_range = 2
         self.living_cost = 1
         self.move_cost = 2
-        self.energy = 10
+        self.energy = 20
         self.pos = None
         self.n_actions = N_ACTIONS
         self.is_greedy = greedy
         self.has_eaten = False
-        self.agent_id = None
+        self.id = None
 
     def action(self) -> int:
-        print(self.pos, self.observation)
-        print("-------------")
         agents_positions = self.observation[0]
         food_positions = self.observation[1]
         closest_food_positions = self.closest_food(self.pos, food_positions)
-        print (closest_food_positions)
         if closest_food_positions is None:
-            return [STAY]
+            # Allow the agent to move randomly to eventually find some food
+            all_actions = list(range(self.n_actions))
+            random.shuffle(all_actions)
+            return all_actions
         return [self.direction_to_go(self.pos, pos) for pos in closest_food_positions] + [STAY]
+    
+    def feedback(self, reward: float):
+        self.energy += reward
+
+    def reset_parameters(self, id):
+        self.energy = 20
+        self.has_eaten = False
+        self.id = id
 
     # ################# #
     # Auxiliary Methods #
@@ -52,8 +61,6 @@ class BasicAgent(Agent):
         Given the position of the agent and the position of a food,
         returns the action to take in order to close the distance
         """
-        if food_position is None:
-            return STAY
         distances = np.array(food_position) - np.array(agent_position)
         abs_distances = np.absolute(distances)
         if abs_distances[0] > abs_distances[1]:
