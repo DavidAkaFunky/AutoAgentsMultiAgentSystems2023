@@ -30,6 +30,7 @@ class BasicAgent(Agent):
     def action(self) -> int:
         agents_positions = self.observation[0]
         food_positions = self.observation[1]
+        print(food_positions)
         closest_food_positions = self.closest_food(self.pos, food_positions)
         if closest_food_positions is None:
             # Allow the agent to move randomly to eventually find some food
@@ -61,11 +62,14 @@ class BasicAgent(Agent):
         Given the position of the agent and the position of a food,
         returns the action to take in order to close the distance
         """
-        distances = np.array(food_position) - np.array(agent_position)
+        distances = np.array(tuple(reversed(food_position)) - np.array(agent_position))
         abs_distances = np.absolute(distances)
-        if abs_distances[0] > abs_distances[1]:
+        
+        print("Agent {} is at position {} and food is at position {} with distance {}".format(
+            self.id, agent_position, tuple(reversed(food_position)), distances))
+        if abs_distances[1] > abs_distances[0]:
             return self._close_horizontally(distances)
-        elif abs_distances[0] < abs_distances[1]:
+        elif abs_distances[1] < abs_distances[0]:
             return self._close_vertically(distances)
         else:
             roll = random.uniform(0, 1)
@@ -94,17 +98,23 @@ class BasicAgent(Agent):
     # ############### #
 
     def _close_horizontally(self, distances):
-        if distances[0] > 0:
+        if distances[1] > 0:
+            print("Agent {} is going right".format(self.id))
             return RIGHT
-        elif distances[0] < 0:
+        elif distances[1] < 0:
+            print("Agent {} is going left".format(self.id))
             return LEFT
         else:
+            print("Agent {} is staying".format(self.id))
             return STAY
 
     def _close_vertically(self, distances):
-        if distances[1] > 0:
+        if distances[0] > 0:
+            print("Agent {} is going down".format(self.id))
             return DOWN
-        elif distances[1] < 0:
+        elif distances[0] < 0:
+            print("Agent {} is going up".format(self.id))
             return UP
         else:
+            print("Agent {} is staying".format(self.id))
             return STAY

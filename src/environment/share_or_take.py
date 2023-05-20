@@ -16,7 +16,7 @@ class ShareOrTake(gym.Env):
 
     metadata = {'render.modes': ['human', 'rgb_array']}
 
-    def __init__(self, grid_shape=(50, 50), n_food=10, max_steps=100):
+    def __init__(self, grid_shape=(50, 50), n_food=10, max_steps=200):
 
         # General grid parameters
         self.grid_shape = grid_shape
@@ -45,6 +45,8 @@ class ShareOrTake(gym.Env):
         self.available_n_food = 0
         self.food_pos = set()
         self.add_remaining_food()
+
+        self.step_count = 0
 
         return {id: self.observation(id) for id in self.agents}
 
@@ -151,8 +153,9 @@ class ShareOrTake(gym.Env):
 
             # An agent can either eat or move in a given step
             if agent.has_eaten:
+                print("Agent {} has already eaten!".format(agent.id))
                 continue
-            for action in agent.action(): 
+            for action in agent.action():
                 if self.update_agent_pos(agent, action, rewards):
                     break
 
@@ -171,8 +174,8 @@ class ShareOrTake(gym.Env):
             else:
                 agent.has_eaten = False # Reset the agent's has_eaten flag
                 # TODO: Only enable this after fixing the wall movement bug
-                # if agent.energy >= agent.reproduction_threshold:
-                #    self.reproduce_agent(agent)
+                if agent.energy >= agent.reproduction_threshold:
+                    self.reproduce_agent(agent)
 
         return {id: self.observation(id) for id in self.agents}, finished
 

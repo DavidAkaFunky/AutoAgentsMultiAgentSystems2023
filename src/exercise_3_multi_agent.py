@@ -3,6 +3,7 @@ import numpy as np
 from gym import Env
 from typing import Sequence
 import time
+import copy
 
 from environment import Agent
 from environment.utils import compare_results
@@ -20,6 +21,8 @@ def run_multi_agent(environment: Env, agents: list[Agent], n_episodes: int, rend
         steps = 0
         finished = False
         observations = environment.reset(agents)
+        for agent in agents:
+            agent.reset_parameters(agent.id)
 
         while True:
             if render:
