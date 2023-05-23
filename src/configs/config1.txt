@@ -1,0 +1,7 @@
+g 20 20
+f 30
+s 50
+sit A
+t team 1
+a y 35 3
+a n 35 3 

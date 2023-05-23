@@ -16,12 +16,15 @@ class ShareOrTake(gym.Env):
 
     metadata = {'render.modes': ['human', 'rgb_array']}
 
-    def __init__(self, grid_shape=(50, 50), n_food=10, max_steps=200):
+    def __init__(self, grid_shape=(50, 50), n_food=10, max_steps=200, debug=False):
 
         # General grid parameters
         self.grid_shape = grid_shape
         self.max_steps = max_steps
         self.step_count = 0
+
+        # Debugging
+        self.debug = debug
 
         # RNG seed
         self.seed()
@@ -55,11 +58,11 @@ class ShareOrTake(gym.Env):
         Spawn a new agent into the grid.
         """
         for agent in agents:
-            while True:
-                pos = [self.np_random.randint(0, self.grid_shape[0] - 1),
-                       self.np_random.randint(0, self.grid_shape[1] - 1)]
-                if self.is_cell_vacant(pos):
-                    break
+            try:
+                pos = self.get_empty_position()
+            except:
+                self.print_if_debug("No more empty positions!")
+                return
             agent.id = self.agent_id
             agent.set_position(pos)
             self.agents[self.agent_id] = agent
@@ -67,18 +70,19 @@ class ShareOrTake(gym.Env):
             self.agent_id += 1
 
     def reproduce_agent(self, agent):
-        print("Agent {} reproduced to form agent {}!".format(agent.id, self.agent_id))
+        self.print_if_debug("Agent {} reproduced to form agent {}!".format(agent.id, self.agent_id))
         new_agent = copy.deepcopy(agent)
-        while True:
-            pos = [self.np_random.randint(0, self.grid_shape[0] - 1),
-                   self.np_random.randint(0, self.grid_shape[1] - 1)]
-            if self.is_cell_vacant(pos):
-                break
+        try:
+            pos = self.get_empty_position()
+        except:
+            self.print_if_debug("No more empty positions!")
+            return False
         new_agent.reset_parameters(self.agent_id)
         new_agent.set_position(pos)
         self.agents[self.agent_id] = new_agent
         self.update_agent_view(new_agent)
         self.agent_id += 1
+        return True
 
     def add_remaining_food(self):
         """ 
@@ -86,11 +90,11 @@ class ShareOrTake(gym.Env):
         This is called to initialise the environment and after an agent eats food.
         """
         while self.available_n_food < self.n_food:
-            while True:
-                pos = (self.np_random.randint(0, self.grid_shape[0] - 1),
-                       self.np_random.randint(0, self.grid_shape[1] - 1))
-                if self.is_cell_vacant(pos):
-                    break
+            try:
+                pos = self.get_empty_position()
+            except:
+                self.print_if_debug("No more empty positions!")
+                return
             self.food_pos.add(pos)
             self.available_n_food += 1
             self.update_food_view(pos)
@@ -153,7 +157,7 @@ class ShareOrTake(gym.Env):
 
             # An agent can either eat or move in a given step
             if agent.has_eaten:
-                print("Agent {} has already eaten!".format(agent.id))
+                self.print_if_debug("Agent {} has already eaten!".format(agent.id))
                 continue
             for action in agent.action():
                 if self.update_agent_pos(agent, action, rewards):
@@ -162,35 +166,37 @@ class ShareOrTake(gym.Env):
         if self.step_count >= self.max_steps:
             finished = True
 
+        deaths = 0
+        births = 0
         agents = copy.deepcopy(self.agents) # Allow agents to be modified during feedback
         for id in agents:
             agent = self.agents[id]
             agent.feedback(rewards[id])
             if agent.energy <= 0:
                 self.kill_agent(id)
+                deaths += 1
                 if len(self.agents) == 0:
                     finished = True
                     break
             else:
                 agent.has_eaten = False # Reset the agent's has_eaten flag
-                # TODO: Only enable this after fixing the wall movement bug
-                if agent.energy >= agent.reproduction_threshold:
-                    self.reproduce_agent(agent)
+                if agent.energy >= agent.reproduction_threshold and self.reproduce_agent(agent):
+                    births += 1
 
-        return {id: self.observation(id) for id in self.agents}, finished
+        return {id: self.observation(id) for id in self.agents}, deaths, births, finished
 
     def draw_base_img(self):
         self.base_img = draw_grid(self.grid_shape[0], self.grid_shape[1], cell_size=CELL_SIZE, fill='white')
 
     def create_grid(self):
-        grid = [[PRE_IDS['empty'] for _ in range(self.grid_shape[1])] for row in range(self.grid_shape[0])]
+        grid = [[PRE_IDS['empty'] for _ in range(self.grid_shape[1])] for _ in range(self.grid_shape[0])]
         return grid
 
     def is_valid(self, pos):
         return (0 <= pos[0] < self.grid_shape[0]) and (0 <= pos[1] < self.grid_shape[1])
 
     def is_cell_vacant(self, pos):
-        return self.is_valid(pos) and (self.grid[pos[0]][pos[1]] == PRE_IDS['empty'])
+        return self.is_valid(pos) and self.grid[pos[0]][pos[1]] == PRE_IDS['empty']
 
     def update_agent_pos(self, agent, move, rewards):
         curr_pos = agent.get_position()
@@ -219,25 +225,25 @@ class ShareOrTake(gym.Env):
         return False
 
     def kill_agent(self, id):
-        print("Agent {} has died!".format(id))
+        self.print_if_debug("Agent {} has died!".format(id))
         pos = self.agents[id].get_position()
         self.grid[pos[0]][pos[1]] = PRE_IDS['empty']
         self.agents.pop(id)
 
     def share_or_take(self, agent1, agent2, pos):
         if agent1.is_greedy and agent2.is_greedy:
-            print("Agents {} and {} are fighting over food at {}!".format(agent1.id, agent2.id, pos))
+            self.print_if_debug("Agents {} and {} are fighting over food at {}!".format(agent1.id, agent2.id, pos))
             pass # The energy earned with food is lost during the fight
         elif agent1.is_greedy:
-            print("Agent {} is stealing food from {} at {}!".format(agent1.id, agent2.id, pos))
+            self.print_if_debug("Agent {} is stealing food from {} at {}!".format(agent1.id, agent2.id, pos))
             agent1.energy += self.food_energy * 0.75
             agent2.energy += self.food_energy * 0.25
         elif agent2.is_greedy:
-            print("Agent {} is stealing food from {} at {}!".format(agent2.id, agent1.id, pos))
+            self.print_if_debug("Agent {} is stealing food from {} at {}!".format(agent2.id, agent1.id, pos))
             agent1.energy += self.food_energy * 0.25
             agent2.energy += self.food_energy * 0.75
         else:
-            print("Agents {} and {} are sharing food at {}!".format(agent2.id, agent1.id, pos))
+            self.print_if_debug("Agents {} and {} are sharing food at {}!".format(agent2.id, agent1.id, pos))
             agent1.energy += self.food_energy * 0.5
             agent2.energy += self.food_energy * 0.5
         agent1.has_eaten = True
@@ -247,7 +253,7 @@ class ShareOrTake(gym.Env):
         self.grid[pos[0]][pos[1]] = PRE_IDS['empty']
 
     def agent_eat(self, agent, pos):
-        print("Agent {} is eating food alone at {}!".format(agent.id, pos))
+        self.print_if_debug("Agent {} is eating food alone at {}!".format(agent.id, pos))
         agent.has_eaten = True
         self.food_pos.remove(pos)
         self.available_n_food -= 1
@@ -260,6 +266,10 @@ class ShareOrTake(gym.Env):
 
     def update_food_view(self, pos):
         self.grid[pos[0]][pos[1]] = PRE_IDS['food']
+
+    def get_empty_position(self):
+        empty_positions = [(y, x) for y in range(self.grid_shape[0]) for x in range(self.grid_shape[1]) if self.grid[y][x] == PRE_IDS['empty']]
+        return random.choice(empty_positions)
 
     def get_neighbour_agents(self, object_pos, vision):
         # Check if agent is in neighbour
@@ -316,6 +326,9 @@ class ShareOrTake(gym.Env):
             self.viewer.close()
             self.viewer = None
 
+    def print_if_debug(self, text):
+        if self.debug:
+            print(text)
 
 AGENT_COLOR = ImageColor.getcolor('blue', mode='RGB')
 AGENT_NEIGHBORHOOD_COLOR = (186, 238, 247)
