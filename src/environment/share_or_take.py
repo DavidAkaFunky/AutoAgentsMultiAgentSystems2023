@@ -31,7 +31,7 @@ class ShareOrTake(gym.Env):
 
         # Food
         self.n_food = n_food
-        self.food_energy = 10
+        self.food_energy = 5
 
         # Rendering
         self.draw_base_img()
@@ -57,9 +57,11 @@ class ShareOrTake(gym.Env):
         """
         Spawn a new agent into the grid.
         """
-        for agent in agents:
+        empty_positions = [(y, x) for y in range(self.grid_shape[0]) for x in range(self.grid_shape[1]) if self.grid[y][x] == PRE_IDS['empty']]
+        choices = self.np_random.choice(len(empty_positions), len(agents), replace=False)
+        for i, agent in enumerate(agents):
             try:
-                pos = self.get_empty_position()
+                pos = empty_positions[choices[i]]
             except:
                 self.print_if_debug("No more empty positions!")
                 return
@@ -77,6 +79,7 @@ class ShareOrTake(gym.Env):
         except:
             self.print_if_debug("No more empty positions!")
             return False
+        agent.energy = (agent.reproduction_threshold + agent.base_energy) / 2
         new_agent.reset_parameters(self.agent_id)
         new_agent.set_position(pos)
         self.agents[self.agent_id] = new_agent
@@ -89,9 +92,12 @@ class ShareOrTake(gym.Env):
         Add food to the grid until the desired number is reached.
         This is called to initialise the environment and after an agent eats food.
         """
-        while self.available_n_food < self.n_food:
+        food_to_add = self.n_food - self.available_n_food
+        empty_positions = [(y, x) for y in range(self.grid_shape[0]) for x in range(self.grid_shape[1]) if self.grid[y][x] == PRE_IDS['empty']]
+        choices = self.np_random.choice(len(empty_positions), food_to_add, replace=False)
+        for i in range(food_to_add):
             try:
-                pos = self.get_empty_position()
+                pos = empty_positions[choices[i]]
             except:
                 self.print_if_debug("No more empty positions!")
                 return
@@ -156,9 +162,9 @@ class ShareOrTake(gym.Env):
             agent.see(observations[id])
 
             # An agent can either eat or move in a given step
-            if agent.has_eaten:
-                self.print_if_debug("Agent {} has already eaten!".format(agent.id))
-                continue
+            #if agent.has_eaten:
+            #    self.print_if_debug("Agent {} has already eaten!".format(agent.id))
+            #    continue
             for action in agent.action():
                 if self.update_agent_pos(agent, action, rewards):
                     break
@@ -269,7 +275,8 @@ class ShareOrTake(gym.Env):
 
     def get_empty_position(self):
         empty_positions = [(y, x) for y in range(self.grid_shape[0]) for x in range(self.grid_shape[1]) if self.grid[y][x] == PRE_IDS['empty']]
-        return random.choice(empty_positions)
+        choice = self.np_random.choice(len(empty_positions), 1)[0]
+        return empty_positions[choice]
 
     def get_neighbour_agents(self, object_pos, vision):
         # Check if agent is in neighbour

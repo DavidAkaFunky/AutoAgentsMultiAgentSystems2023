@@ -14,13 +14,14 @@ class BasicAgent(Agent):
     A baseline agent for the ShareOrTake environment.
     """
 
-    def __init__(self, team, greedy, energy):
+    def __init__(self, team, greedy, energy, reproduction_threshold):
         super(BasicAgent, self).__init__(f"Basic Agent")
         self.team = team
-        self.reproduction_threshold = 50
+        self.reproduction_threshold = reproduction_threshold
         self.vision_range = 4
         self.living_cost = 1
-        self.move_cost = 2
+        self.move_cost = 1
+        self.base_energy = energy
         self.energy = energy
         self.pos = None
         self.n_actions = N_ACTIONS

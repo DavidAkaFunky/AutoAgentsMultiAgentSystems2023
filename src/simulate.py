@@ -14,6 +14,7 @@ from basic_agent import BasicAgent
 def run_multi_agent(environment: Env, agents: list[Agent], n_episodes: int, render=False) -> np.ndarray:
 
     population = np.zeros((n_episodes, environment.max_steps + 1))
+    avg_population = dict()
     deaths = np.zeros((n_episodes, environment.max_steps))
     births = np.zeros((n_episodes, environment.max_steps))
 
@@ -51,6 +52,10 @@ def run_multi_agent(environment: Env, agents: list[Agent], n_episodes: int, rend
         environment.render()
         environment.close()
 
+    population = population.swapaxes(0, 1)
+    print("Average population: ", avg_population)
+            
+
     return population, deaths, births
 
 def parse_config(input_file) -> dict[str, list[Agent]]:
@@ -72,9 +77,10 @@ def parse_config(input_file) -> dict[str, list[Agent]]:
             case "a":
                 greedy = (line[1] == "y")
                 energy = int(line[2])
+                reproduction_threshold = int(line[3])
                 quantity = int(line[-1])
                 for _ in range(quantity):
-                    situations[situation_name].append(BasicAgent(tribe_name, greedy=greedy, energy=energy))
+                    situations[situation_name].append(BasicAgent(tribe_name, greedy, energy, reproduction_threshold))
     return situations, grid_shape, n_food, n_steps
 
 if __name__ == '__main__':
@@ -110,12 +116,12 @@ if __name__ == '__main__':
 
     compare_results(
         deaths,
-        title="Population Comparison on 'Share or Take' Environment",
+        title="Deaths Comparison on 'Share or Take' Environment",
         colors=["orange",]
     )
 
     compare_results(
         births,
-        title="Population Comparison on 'Share or Take' Environment",
+        title="Births Comparison on 'Share or Take' Environment",
         colors=["orange",]
     )

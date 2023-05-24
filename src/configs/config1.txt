@@ -1,7 +1,7 @@
-g 20 20
-f 30
+g 10 10
+f 20
 s 50
 sit A
-t team 1
-a y 35 3
-a n 35 3 
+t tribe 1
+a y 30 40 0
+a n 30 40 15
