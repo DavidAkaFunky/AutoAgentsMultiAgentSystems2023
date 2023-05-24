@@ -62,7 +62,7 @@ def standard_error(std_dev, n, confidence):
     return z_table(confidence) * (std_dev / math.sqrt(n))
 
 
-def plot_confidence_bar(names, means, std_devs, N, title, x_label, y_label, confidence, show=False, filename=None, colors=None, yscale=None):
+def plot_confidence_bar(names, means, std_devs, N, title, x_label, y_label, confidence, plot=False, show=False, filename=None, colors=None, yscale=None):
     """Creates a bar plot for comparing different agents/teams.
 
     Parameters
@@ -97,7 +97,10 @@ def plot_confidence_bar(names, means, std_devs, N, title, x_label, y_label, conf
     errors = [standard_error(std_devs[i], N[i], confidence) for i in range(len(means))]
     fig, ax = plt.subplots()
     x_pos = np.arange(len(names))
-    ax.bar(x_pos, means, yerr=errors, align='center', alpha=0.5, color=colors if colors is not None else "gray", ecolor='black', capsize=10)
+    if(plot):
+        ax.plot(x_pos, means, 'bo')
+    else:
+        ax.bar(x_pos, means, yerr=errors, align='center', alpha=0.5, color=colors if colors is not None else "gray", ecolor='black', capsize=10)
     ax.set_ylabel(y_label)
     ax.set_xlabel(x_label)
     ax.set_xticks(x_pos)
@@ -114,7 +117,7 @@ def plot_confidence_bar(names, means, std_devs, N, title, x_label, y_label, conf
     plt.close()
 
 
-def compare_results(results, confidence=0.95, title="Agents Comparison", metric="Steps Per Episode", colors=None):
+def compare_results(results, confidence=0.95, title="Agents Comparison", metric="Steps Per Episode", colors=None, plot=False):
 
     """Displays a bar plot comparing the performance of different agents/teams.
 
@@ -146,7 +149,7 @@ def compare_results(results, confidence=0.95, title="Agents Comparison", metric=
         N=N,
         title=title,
         x_label="", y_label=f"Avg. {metric}",
-        confidence=confidence, show=True, colors=colors
+        confidence=confidence, show=True, colors=colors, plot=plot
     )
 
 

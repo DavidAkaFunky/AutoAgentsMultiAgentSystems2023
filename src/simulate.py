@@ -51,9 +51,6 @@ def run_multi_agent(environment: Env, agents: list[Agent], n_episodes: int, rend
     if render:
         environment.render()
         environment.close()
-
-    population = population.swapaxes(0, 1)
-    print("Average population: ", avg_population)
             
 
     return population, deaths, births
@@ -108,20 +105,37 @@ if __name__ == '__main__':
         deaths[situation] = deaths_sit
         births[situation] = births_sit
 
-    compare_results(
-        population,
-        title="Population Comparison on 'Share or Take' Environment",
-        colors=["orange",]
-    )
+    
+    for situation in situations.keys():
+        dict_pop = {}
+        dict_deaths = {}
+        dict_births = {}
+        for i in range(n_steps):
+            for population_sit in population[situation]:
+                dict_pop[i] = (np.mean(population_sit[i]))
+            for deaths_sit in deaths[situation]:
+                dict_deaths[i] = (np.mean(deaths_sit[i]))
+            for births_sit in births[situation]:
+                dict_births[i] = (np.mean(births_sit[i]))
 
-    compare_results(
-        deaths,
-        title="Deaths Comparison on 'Share or Take' Environment",
-        colors=["orange",]
-    )
+        compare_results(
+            dict_pop,
+            title="Population Comparison on 'Share or Take' Environment",
+            metric="Population per step",
+            plot=True,
+            colors=["orange",]
+        )
 
-    compare_results(
-        births,
-        title="Births Comparison on 'Share or Take' Environment",
-        colors=["orange",]
-    )
+        compare_results(
+            dict_deaths,
+            title="Deaths Comparison on 'Share or Take' Environment",
+            metric="Deaths per step",
+            colors=["orange",]
+        )
+
+        compare_results(
+            dict_births,
+            title="Births Comparison on 'Share or Take' Environment",
+            metric="Births per step",
+            colors=["orange",]
+        )
