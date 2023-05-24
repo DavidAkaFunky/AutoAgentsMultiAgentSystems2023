@@ -36,10 +36,11 @@ class BasicAgent(Agent):
         closest_food_positions = self.closest_food(self.pos, food_positions)
         if closest_food_positions is None:
             # Allow the agent to move randomly to eventually find some food
-            all_actions = list(range(self.n_actions))
-            random.shuffle(all_actions)
-            return all_actions
-        return [self.direction_to_go(self.pos, pos) for pos in closest_food_positions] + [STAY]
+            all_actions = list(range(self.n_actions))[:-1]
+        else:
+            all_actions = [self.direction_to_go(self.pos, pos) for pos in closest_food_positions]
+        random.shuffle(all_actions)
+        return all_actions + [STAY]
     
     def feedback(self, reward: float):
         self.energy += reward

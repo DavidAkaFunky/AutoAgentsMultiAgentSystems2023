@@ -31,7 +31,7 @@ class ShareOrTake(gym.Env):
 
         # Food
         self.n_food = n_food
-        self.food_energy = 5
+        self.food_energy = 7
 
         # Rendering
         self.draw_base_img()
@@ -79,7 +79,7 @@ class ShareOrTake(gym.Env):
         except:
             self.print_if_debug("No more empty positions!")
             return False
-        agent.energy = (agent.reproduction_threshold + agent.base_energy) / 2
+        agent.energy = (agent.energy + agent.base_energy) / 2
         new_agent.reset_parameters(self.agent_id)
         new_agent.set_position(pos)
         self.agents[self.agent_id] = new_agent
