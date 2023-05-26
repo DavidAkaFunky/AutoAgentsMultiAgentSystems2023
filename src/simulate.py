@@ -3,13 +3,16 @@ import numpy as np
 from gym import Env
 from typing import Sequence
 import time
-import copy
 
 from environment import Agent
 from environment.utils import compare_results_pop, compare_results_other_metrics
 from environment.share_or_take import ShareOrTake
 
+from agents.blind_agent import BlindAgent
 from agents.basic_agent import BasicAgent
+from agents.tribal_agent import TribalAgent
+
+COLOURS = ["orange", "blue", "green", "red", "purple", "brown", "pink", "gray", "olive", "cyan"]
 
 def run_multi_agent(environment: Env, agents: list[Agent], n_episodes: int, render=False) -> np.ndarray:
 
@@ -43,9 +46,6 @@ def run_multi_agent(environment: Env, agents: list[Agent], n_episodes: int, rend
                 break
 
         population[episode, steps] = len(environment.agents)
-        print("Population: ", population[episode])
-        print("Deaths: ", deaths[episode])
-        print("Births: ", births[episode])
 
     if render:
         environment.render()
@@ -69,14 +69,24 @@ def parse_config(input_file) -> dict[str, list[Agent]]:
                 situation_name = " ".join(line[1:])
                 situations[situation_name] = []
             case "t":
-                tribe_name = " ".join(line[1:])
+                if len(line) == 1:
+                    tribe_name = None
+                else:
+                    tribe_name = " ".join(line[1:])
             case "a":
-                greedy = (line[1] == "y")
-                energy = int(line[2])
-                reproduction_threshold = int(line[3])
+                blind = (line[1] == "y")
+                greedy = (line[2] == "y")
+                energy = int(line[3])
+                reproduction_threshold = int(line[4])
                 quantity = int(line[-1])
                 for _ in range(quantity):
-                    situations[situation_name].append(BasicAgent(tribe_name, greedy, energy, reproduction_threshold))
+                    if blind:
+                        agent = BlindAgent(greedy, energy, reproduction_threshold)
+                    if tribe_name is None:
+                        agent = BasicAgent(greedy, energy, reproduction_threshold)
+                    else:
+                        agent = TribalAgent(tribe_name, False, energy, reproduction_threshold)
+                    situations[situation_name].append(agent)
     return situations, grid_shape, n_food, n_steps
 
 if __name__ == '__main__':
@@ -92,7 +102,6 @@ if __name__ == '__main__':
     render = opt.render
     episodes = opt.episodes
     situations, grid_shape, n_food, n_steps = parse_config(input_file)
-    print(situations)
     
     population = {}
     deaths = {}
@@ -108,19 +117,19 @@ if __name__ == '__main__':
         population,
         title="Population Comparison on 'Share or Take' Environment",
         plot=True,
-        colors=["orange", "blue", "green"]
+        colors=COLOURS[:len(situations)]
     )
 
     compare_results_other_metrics(
         deaths,
         title="Deaths Comparison on 'Share or Take' Environment",
         metric="Deaths per step",
-        colors=["orange", "blue", "green"]
+        colors=COLOURS[:len(situations)]
     )
 
     compare_results_other_metrics(
         births,
         title="Births Comparison on 'Share or Take' Environment",
         metric="Births per step",
-        colors=["orange", "blue", "green"]
+        colors=COLOURS[:len(situations)]
     )

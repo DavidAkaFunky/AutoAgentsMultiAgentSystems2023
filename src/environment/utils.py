@@ -80,8 +80,7 @@ def compare_results_pop(results, confidence=0.95, title="Agents Comparison", col
             A sequence of colors (one for each agent/team)
 
         """
-
-    print(colors)
+    situations = list(results.keys())
     results = list(results.values())
     for i in range(len(results)):
         results_i = results[i]
@@ -95,13 +94,14 @@ def compare_results_pop(results, confidence=0.95, title="Agents Comparison", col
         if plot:
             # Uncomment to get plot points
             # plt.plot(x_pos, means, "bo", color=colors[i] if colors is not None else "gray")
-            plt.plot(x_pos, means, color=colors[i] if colors is not None else "gray")
-        plt.ylabel("Average population")
-        plt.xlabel("Step number")
-        plt.xticks(x_pos, names)
-        plt.title(title)
-        plt.grid(True, axis='y')
-        plt.tight_layout()
+            plt.errorbar(x_pos, means, errors, capsize=3, linewidth=1, color=colors[i] if colors is not None else "gray")
+    plt.ylabel("Average population")
+    plt.xlabel("Step number")
+    plt.xticks(x_pos, names)
+    plt.title(title)
+    plt.grid(True, axis='y')
+    plt.tight_layout()
+    plt.legend(situations)
     plt.show()
 
 def compare_results_other_metrics(results, confidence=0.95, title="Agents Comparison", metric="", colors=None, plot=False):
@@ -123,11 +123,13 @@ def compare_results_other_metrics(results, confidence=0.95, title="Agents Compar
             A sequence of colors (one for each agent/team)
 
         """
-
-    print(colors)
+    situations = list(results.keys())
     results = list(results.values())
     x_pos = np.arange(len(results[0]))
     _, axs = plt.subplots(len(colors))
+    # To allow iteration even with only one subplot
+    if len(colors) == 1:
+        axs = [axs]
     for i in range(len(results)):
         results_i = results[i]
         names = range(1, len(results_i) + 1)
@@ -137,12 +139,13 @@ def compare_results_other_metrics(results, confidence=0.95, title="Agents Compar
 
         errors = [standard_error(std_devs[i], N[i], confidence) for i in range(len(means))]
         
-        axs[i].bar(x_pos, means, yerr=errors, align='center', alpha=0.5, color=colors[i] if colors is not None else "gray", ecolor='black', capsize=10)
         axs[i].set_ylabel(f"Average {metric}")
         axs[i].set_xlabel("Step number")
         axs[i].set_xticks(x_pos)
         axs[i].set_xticklabels(names)
-        axs[i].set_title(title)
-    plt.grid(True, axis='y')
+        axs[i].set_title(situations[i])
+        axs[i].yaxis.grid(True)
+        axs[i].bar(x_pos, means, yerr=errors, align='center', alpha=0.5, color=colors[i] if colors is not None else "gray", ecolor=colors[i] if colors is not None else "gray", capsize=3)
+    # plt.title(title)
     plt.tight_layout()
     plt.show()
