@@ -6,15 +6,14 @@ import time
 import copy
 
 from environment import Agent
-from environment.utils import compare_results
+from environment.utils import compare_results_pop, compare_results_other_metrics
 from environment.share_or_take import ShareOrTake
 
-from basic_agent import BasicAgent
+from agents.basic_agent import BasicAgent
 
 def run_multi_agent(environment: Env, agents: list[Agent], n_episodes: int, render=False) -> np.ndarray:
 
     population = np.zeros((n_episodes, environment.max_steps + 1))
-    avg_population = dict()
     deaths = np.zeros((n_episodes, environment.max_steps))
     births = np.zeros((n_episodes, environment.max_steps))
 
@@ -31,7 +30,7 @@ def run_multi_agent(environment: Env, agents: list[Agent], n_episodes: int, rend
             population[episode, steps] = len(environment.agents)
             if render:
                 environment.render()
-                time.sleep(0.5)
+                time.sleep(4.5)
 
             steps += 1
             
@@ -101,41 +100,27 @@ if __name__ == '__main__':
     for situation, agents in situations.items():
         environment = ShareOrTake(grid_shape=grid_shape, n_food=n_food, max_steps=n_steps, debug=False)
         population_sit, deaths_sit, births_sit = run_multi_agent(environment, agents, episodes, render=render)
-        population[situation] = population_sit
-        deaths[situation] = deaths_sit
-        births[situation] = births_sit
+        population[situation] = np.transpose(population_sit)
+        deaths[situation] = np.transpose(deaths_sit)
+        births[situation] = np.transpose(births_sit)
 
-    
-    for situation in situations.keys():
-        dict_pop = {}
-        dict_deaths = {}
-        dict_births = {}
-        for i in range(n_steps):
-            for population_sit in population[situation]:
-                dict_pop[i] = (np.mean(population_sit[i]))
-            for deaths_sit in deaths[situation]:
-                dict_deaths[i] = (np.mean(deaths_sit[i]))
-            for births_sit in births[situation]:
-                dict_births[i] = (np.mean(births_sit[i]))
+    compare_results_pop(
+        population,
+        title="Population Comparison on 'Share or Take' Environment",
+        plot=True,
+        colors=["orange", "blue", "green"]
+    )
 
-        compare_results(
-            dict_pop,
-            title="Population Comparison on 'Share or Take' Environment",
-            metric="Population per step",
-            plot=True,
-            colors=["orange",]
-        )
+    compare_results_other_metrics(
+        deaths,
+        title="Deaths Comparison on 'Share or Take' Environment",
+        metric="Deaths per step",
+        colors=["orange", "blue", "green"]
+    )
 
-        compare_results(
-            dict_deaths,
-            title="Deaths Comparison on 'Share or Take' Environment",
-            metric="Deaths per step",
-            colors=["orange",]
-        )
-
-        compare_results(
-            dict_births,
-            title="Births Comparison on 'Share or Take' Environment",
-            metric="Births per step",
-            colors=["orange",]
-        )
+    compare_results_other_metrics(
+        births,
+        title="Births Comparison on 'Share or Take' Environment",
+        metric="Births per step",
+        colors=["orange", "blue", "green"]
+    )

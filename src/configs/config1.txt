@@ -1,7 +1,15 @@
-g 12 12
+g 14 14
 f 35
 s 50
-sit A
+sit Greedy only
+t tribe 1
+a y 30 50 16
+a n 30 50 0
+sit Peaceful only
 t tribe 1
 a y 30 50 0
-a n 30 50 15
+a n 30 50 16
+sit 50/50
+t tribe 1
+a y 30 50 8
+a n 30 50 8

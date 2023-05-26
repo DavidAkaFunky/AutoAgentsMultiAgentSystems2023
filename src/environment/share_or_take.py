@@ -116,12 +116,12 @@ class ShareOrTake(gym.Env):
         for other_agent_id in self.agents:
             [row, col] = self.agents[other_agent_id].get_position()
             if self.agent_can_see(row, col, agent_row, agent_col, agent.vision_range):
-                agents_pos.append((col, row))
+                agents_pos.append((row, col))
 
         food_pos = []
         for (row, col) in self.food_pos:
             if self.agent_can_see(row, col, agent_row, agent_col, agent.vision_range):
-                food_pos.append((col, row))
+                food_pos.append((row, col))
 
         return agents_pos, food_pos
 
@@ -162,7 +162,7 @@ class ShareOrTake(gym.Env):
             agent.see(observations[id])
 
             # An agent can either eat or move in a given step
-            #if agent.has_eaten:
+            # if agent.has_eaten:
             #    self.print_if_debug("Agent {} has already eaten!".format(agent.id))
             #    continue
             for action in agent.action():
@@ -237,23 +237,8 @@ class ShareOrTake(gym.Env):
         self.agents.pop(id)
 
     def share_or_take(self, agent1, agent2, pos):
-        if agent1.is_greedy and agent2.is_greedy:
-            self.print_if_debug("Agents {} and {} are fighting over food at {}!".format(agent1.id, agent2.id, pos))
-            pass # The energy earned with food is lost during the fight
-        elif agent1.is_greedy:
-            self.print_if_debug("Agent {} is stealing food from {} at {}!".format(agent1.id, agent2.id, pos))
-            agent1.energy += self.food_energy * 0.75
-            agent2.energy += self.food_energy * 0.25
-        elif agent2.is_greedy:
-            self.print_if_debug("Agent {} is stealing food from {} at {}!".format(agent2.id, agent1.id, pos))
-            agent1.energy += self.food_energy * 0.25
-            agent2.energy += self.food_energy * 0.75
-        else:
-            self.print_if_debug("Agents {} and {} are sharing food at {}!".format(agent2.id, agent1.id, pos))
-            agent1.energy += self.food_energy * 0.5
-            agent2.energy += self.food_energy * 0.5
-        agent1.has_eaten = True
-        agent2.has_eaten = True
+        agent1.share_or_take(agent2, self.food_energy)
+        agent2.share_or_take(agent1, self.food_energy)
         self.food_pos.remove(pos)
         self.available_n_food -= 1
         self.grid[pos[0]][pos[1]] = PRE_IDS['empty']

@@ -15,10 +15,11 @@ class BasicAgent(Agent):
     """
 
     def __init__(self, team, greedy, energy, reproduction_threshold):
-        super(BasicAgent, self).__init__(f"Basic Agent")
+        self.name = "Basic agent"
+        self.observation = None
         self.team = team
         self.reproduction_threshold = reproduction_threshold
-        self.vision_range = 4
+        self.vision_range = 1
         self.living_cost = 1
         self.move_cost = 1
         self.base_energy = energy
@@ -30,9 +31,9 @@ class BasicAgent(Agent):
         self.id = None
 
     def action(self) -> int:
-        agents_positions = self.observation[0]
+        # agents_positions = self.observation[0]
         food_positions = self.observation[1]
-        #print(food_positions)
+        # print(food_positions)
         closest_food_positions = self.closest_food(self.pos, food_positions)
         if closest_food_positions is None:
             # Allow the agent to move randomly to eventually find some food
@@ -42,6 +43,9 @@ class BasicAgent(Agent):
         random.shuffle(all_actions)
         return all_actions + [STAY]
     
+    def see(self, observation: np.ndarray):
+        self.observation = observation
+
     def feedback(self, reward: float):
         self.energy += reward
 
@@ -50,8 +54,19 @@ class BasicAgent(Agent):
         self.has_eaten = False
         self.id = id
 
+    def share_or_take(self, other, food_energy):
+        if self.is_greedy and other.is_greedy:
+            pass # The energy earned with food is lost during the fight
+        elif self.is_greedy:
+            self.energy += food_energy * 0.75
+        elif other.is_greedy:
+            self.energy += food_energy * 0.25
+        else:
+            self.energy += food_energy * 0.5
+        self.has_eaten = True
+
     def __repr__(self) -> str:
-        return f"BasicAgent({self.team}) - Energy: {self.energy} - Position: {self.pos} - Greedy: {self.is_greedy}"
+        return f"{self.name} ({self.team}) - Energy: {self.energy} - Position: {self.pos} - Greedy: {self.is_greedy}"
 
     # ################# #
     # Auxiliary Methods #
@@ -81,23 +96,33 @@ class BasicAgent(Agent):
             roll = random.uniform(0, 1)
             return self._close_horizontally(distances) if roll > 0.5 else self._close_vertically(distances)
 
+    # def closest_food(self, agent_position, food_positions):
+    #     """
+    #         Given the positions of an agent and a sequence of positions of all food,
+    #         returns the positions of the closest food blocks.
+    #         If there is no food, None is returned instead
+    #     """
+    #     min = math.inf
+    #     closest_food_positions = None
+    #     for p in range(len(food_positions)):
+    #         food_position = food_positions[p]
+    #         distance = cityblock(agent_position, food_position)
+    #         if distance < min:
+    #             min = distance
+    #             closest_food_positions = [food_position]
+    #         elif distance == min:
+    #             closest_food_positions.append(food_position)
+    #     return closest_food_positions
+    
     def closest_food(self, agent_position, food_positions):
-        """
-            Given the positions of an agent and a sequence of positions of all food,
-            returns the positions of the closest food blocks.
-            If there is no food, None is returned instead
-        """
-        min = math.inf
-        closest_food_positions = None
-        for p in range(len(food_positions)):
-            food_position = food_positions[p]
-            distance = cityblock(agent_position, food_position)
-            if distance < min:
-                min = distance
-                closest_food_positions = [food_position]
-            elif distance == min:
-                closest_food_positions.append(food_position)
-        return closest_food_positions
+        positions = {cityblock(agent_position, food_position): [food_position] for food_position in food_positions}
+        order = []
+        if len(positions) == 0:
+            return None
+        for distance in sorted(positions.keys()):
+            random.shuffle(positions[distance])
+            order += positions[distance]
+        return order
 
     # ############### #
     # Private Methods #
