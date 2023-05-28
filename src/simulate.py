@@ -3,6 +3,7 @@ import numpy as np
 from gym import Env
 from typing import Sequence
 import time
+import copy
 
 from environment import Agent
 from environment.utils import compare_results_pop, compare_results_other_metrics
@@ -14,13 +15,14 @@ from agents.tribal_agent import TribalAgent
 
 COLOURS = ["orange", "blue", "green", "red", "purple", "brown", "pink", "gray", "olive", "cyan"]
 
-def run_multi_agent(environment: Env, agents: list[Agent], n_episodes: int, render=False) -> np.ndarray:
+def run_multi_agent(environment: Env, starting_agents: list[Agent], n_episodes: int, render=False) -> np.ndarray:
 
     population = np.zeros((n_episodes, environment.max_steps + 1))
     deaths = np.zeros((n_episodes, environment.max_steps))
     births = np.zeros((n_episodes, environment.max_steps))
 
     for episode in range(n_episodes):
+        agents = copy.deepcopy(starting_agents)
 
         print("Starting episode {} in {}".format(episode + 1, n_episodes))
         steps = 0
