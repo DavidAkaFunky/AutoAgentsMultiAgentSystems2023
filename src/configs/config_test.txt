@@ -1,0 +1,6 @@
+g 14 14
+f 35
+s 50
+sit Regular 50/50 greedy
+t
+a n n 30 50 14

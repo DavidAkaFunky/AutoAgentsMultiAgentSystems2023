@@ -3,6 +3,7 @@ import logging
 import random
 import numpy as np
 import copy
+from math import ceil, sqrt
 
 logger = logging.getLogger(__name__)
 
@@ -22,6 +23,7 @@ class ShareOrTake(gym.Env):
         self.grid_shape = grid_shape
         self.max_steps = max_steps
         self.step_count = 0
+        
 
         # Debugging
         self.debug = debug
@@ -42,11 +44,16 @@ class ShareOrTake(gym.Env):
         self.grid = self.create_grid()
         self.agent_id = 0 # Used to assign unique agent IDs
         self.agents = {} # Dictionary of agents
+        self.agent_sub_grids_x = ceil(sqrt(len(agents)))
+        self.agent_sub_grids_y = ceil(len(agents) / self.agent_sub_grids_x)
         self.add_all_agents(agents)
 
         # Food
         self.available_n_food = 0
+        self.food_id = 0
         self.food_pos = set()
+        self.food_sub_grids_x = ceil(sqrt(self.n_food))
+        self.food_sub_grids_y = ceil(self.n_food / self.food_sub_grids_x)
         self.add_remaining_food()
 
         self.step_count = 0
@@ -57,12 +64,10 @@ class ShareOrTake(gym.Env):
         """
         Spawn a new agent into the grid.
         """
-        empty_positions = [(y, x) for y in range(self.grid_shape[0]) for x in range(self.grid_shape[1]) if self.grid[y][x] == PRE_IDS['empty']]
-        choices = self.np_random.choice(len(empty_positions), len(agents), replace=False)
-        for i, agent in enumerate(agents):
-            try:
-                pos = empty_positions[choices[i]]
-            except:
+        print(agents)
+        for agent in agents:
+            pos = self.get_empty_position_agent()
+            if pos is None:
                 self.print_if_debug("No more empty positions!")
                 return
             agent.id = self.agent_id
@@ -74,11 +79,10 @@ class ShareOrTake(gym.Env):
     def reproduce_agent(self, agent):
         self.print_if_debug("Agent {} reproduced to form agent {}!".format(agent.id, self.agent_id))
         new_agent = copy.deepcopy(agent)
-        try:
-            pos = self.get_empty_position()
-        except:
+        pos = self.get_empty_position_agent()
+        if pos is None:
             self.print_if_debug("No more empty positions!")
-            return False
+            return
         agent.energy = (agent.energy + agent.base_energy) / 2
         new_agent.reset_parameters(self.agent_id)
         new_agent.set_position(pos)
@@ -93,14 +97,12 @@ class ShareOrTake(gym.Env):
         This is called to initialise the environment and after an agent eats food.
         """
         food_to_add = self.n_food - self.available_n_food
-        empty_positions = [(y, x) for y in range(self.grid_shape[0]) for x in range(self.grid_shape[1]) if self.grid[y][x] == PRE_IDS['empty']]
-        choices = self.np_random.choice(len(empty_positions), food_to_add, replace=False)
         for i in range(food_to_add):
-            try:
-                pos = empty_positions[choices[i]]
-            except:
+            pos = self.get_empty_position_food()
+            if pos is None:
                 self.print_if_debug("No more empty positions!")
                 return
+            self.food_id += 1
             self.food_pos.add(pos)
             self.available_n_food += 1
             self.update_food_view(pos)
@@ -258,8 +260,30 @@ class ShareOrTake(gym.Env):
     def update_food_view(self, pos):
         self.grid[pos[0]][pos[1]] = PRE_IDS['food']
 
-    def get_empty_position(self):
-        empty_positions = [(y, x) for y in range(self.grid_shape[0]) for x in range(self.grid_shape[1]) if self.grid[y][x] == PRE_IDS['empty']]
+    def get_empty_position_agent(self):
+        sub_grid_x = self.agent_id % self.agent_sub_grids_x
+        sub_grid_y = (self.agent_id // self.agent_sub_grids_x) % self.agent_sub_grids_y
+        min_pos_x = sub_grid_x * (self.grid_shape[1] // self.agent_sub_grids_x)
+        max_pos_x = (sub_grid_x + 1) * (self.grid_shape[1] // self.agent_sub_grids_x)
+        min_pos_y = sub_grid_y * (self.grid_shape[0] // self.agent_sub_grids_y)
+        max_pos_y = (sub_grid_y + 1) * (self.grid_shape[0] // self.agent_sub_grids_y)
+        return self.get_empty_position(min_pos_x, max_pos_x, min_pos_y, max_pos_y)
+    
+    def get_empty_position_food(self):
+        sub_grid_x = self.food_id % self.food_sub_grids_x
+        sub_grid_y = (self.food_id // self.food_sub_grids_x) % self.food_sub_grids_y
+        min_pos_x = sub_grid_x * (self.grid_shape[1] // self.food_sub_grids_x)
+        max_pos_x = (sub_grid_x + 1) * (self.grid_shape[1] // self.food_sub_grids_x)
+        min_pos_y = sub_grid_y * (self.grid_shape[0] // self.food_sub_grids_y)
+        max_pos_y = (sub_grid_y + 1) * (self.grid_shape[0] // self.food_sub_grids_y)
+        return self.get_empty_position(min_pos_x, max_pos_x, min_pos_y, max_pos_y)
+
+    def get_empty_position(self, min_pos_x, max_pos_x, min_pos_y, max_pos_y):
+        empty_positions = [(y, x) for y in range(min_pos_y, max_pos_y) for x in range(min_pos_x, max_pos_x) if self.grid[y][x] == PRE_IDS['empty']]
+        if len(empty_positions) == 0:
+            empty_positions = [(y, x) for y in range(self.grid_shape[0]) for x in range(self.grid_shape[1]) if self.grid[y][x] == PRE_IDS['empty']]
+        if len(empty_positions) == 0:
+            return None
         choice = self.np_random.choice(len(empty_positions), 1)[0]
         return empty_positions[choice]
 
