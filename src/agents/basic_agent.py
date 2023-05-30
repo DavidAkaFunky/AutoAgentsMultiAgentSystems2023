@@ -16,6 +16,7 @@ class BasicAgent(BlindAgent):
         super().__init__(greedy, energy, reproduction_threshold)
         self.name = "Basic agent"
         self.observation = None
+        self.vision_range = 5
 
     def action(self) -> int:
         # agents_positions = self.observation[0]

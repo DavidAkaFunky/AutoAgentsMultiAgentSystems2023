@@ -20,6 +20,8 @@ def run_multi_agent(environment: Env, starting_agents: list[Agent], n_episodes: 
     population = np.zeros((n_episodes, environment.max_steps + 1))
     deaths = np.zeros((n_episodes, environment.max_steps))
     births = np.zeros((n_episodes, environment.max_steps))
+    population_greedy = np.zeros((n_episodes, environment.max_steps + 1))
+    population_non_greedy = np.zeros((n_episodes, environment.max_steps + 1))
 
     for episode in range(n_episodes):
         agents = copy.deepcopy(starting_agents)
@@ -33,9 +35,13 @@ def run_multi_agent(environment: Env, starting_agents: list[Agent], n_episodes: 
 
         while True:
             population[episode, steps] = len(environment.agents)
+            greedy_agents = sum(environment.agents[agent].is_greedy for agent in environment.agents)
+            population_greedy[episode, steps] = greedy_agents
+            population_non_greedy[episode, steps] = len(environment.agents) - greedy_agents
+
             if render:
                 environment.render()
-                time.sleep(4.5)
+                time.sleep(0.5)
 
             steps += 1
             
@@ -48,13 +54,17 @@ def run_multi_agent(environment: Env, starting_agents: list[Agent], n_episodes: 
                 break
 
         population[episode, steps] = len(environment.agents)
+        greedy_agents = sum(environment.agents[agent].is_greedy for agent in environment.agents)
+        population_greedy[episode, steps] = greedy_agents
+        population_non_greedy[episode, steps] = len(environment.agents) - greedy_agents
+
 
     if render:
         environment.render()
         environment.close()
             
 
-    return population, deaths, births
+    return population, deaths, births, population_greedy, population_non_greedy
 
 def parse_config(input_file) -> dict[str, list[Agent]]:
     situations = {}
@@ -108,12 +118,16 @@ if __name__ == '__main__':
     population = {}
     deaths = {}
     births = {}
+    greedy_population = {}
+    non_greedy_population = {}
     for situation, agents in situations.items():
         environment = ShareOrTake(grid_shape=grid_shape, n_food=n_food, max_steps=n_steps, debug=False)
-        population_sit, deaths_sit, births_sit = run_multi_agent(environment, agents, episodes, render=render)
+        population_sit, deaths_sit, births_sit, greedy_sit, n_greedy_sit = run_multi_agent(environment, agents, episodes, render=render)
         population[situation] = np.transpose(population_sit)
         deaths[situation] = np.transpose(deaths_sit)
         births[situation] = np.transpose(births_sit)
+        greedy_population[situation] = np.transpose(greedy_sit)
+        non_greedy_population[situation] = np.transpose(n_greedy_sit)
 
     compare_results_pop(
         population,
@@ -121,6 +135,21 @@ if __name__ == '__main__':
         plot=True,
         colors=COLOURS[:len(situations)]
     )
+    compare_results_pop(
+        greedy_population,
+        title="Greedy Population Comparison on 'Share or Take' Environment",
+        plot=True,
+        colors=COLOURS[:len(situations)]
+    )
+
+    compare_results_pop(
+        non_greedy_population,
+        title="Non Greedy Comparison on 'Share or Take' Environment",
+        plot=True,
+        colors=COLOURS[:len(situations)]
+    )
+    
+    '''
 
     compare_results_other_metrics(
         deaths,
@@ -135,3 +164,4 @@ if __name__ == '__main__':
         metric="Births per step",
         colors=COLOURS[:len(situations)]
     )
+    '''

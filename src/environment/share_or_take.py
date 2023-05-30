@@ -64,7 +64,6 @@ class ShareOrTake(gym.Env):
         """
         Spawn a new agent into the grid.
         """
-        print(agents)
         for agent in agents:
             pos = self.get_empty_position_agent()
             if pos is None:
@@ -192,6 +191,7 @@ class ShareOrTake(gym.Env):
                     births += 1
 
         return {id: self.observation(id) for id in self.agents}, deaths, births, finished
+
 
     def draw_base_img(self):
         self.base_img = draw_grid(self.grid_shape[0], self.grid_shape[1], cell_size=CELL_SIZE, fill='white')
