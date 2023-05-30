@@ -1,0 +1,13 @@
+g 16 16
+f 25
+s 100
+sit Regular full peaceful
+t
+a regular n 25 40 24
+sit Regular 50/50 greedy
+t
+a regular n 25 40 12
+a regular y 25 40 12
+sit Regular full greedy
+t
+a regular y 25 40 24

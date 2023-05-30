@@ -1,0 +1,13 @@
+g 16 16
+f 25
+s 100
+sit Rational full peaceful
+t
+a rational n 25 40 24
+sit Rational 50/50 greedy
+t
+a rational n 25 40 12
+a rational y 25 40 12
+sit Rational full greedy
+t
+a rational y 25 40 24

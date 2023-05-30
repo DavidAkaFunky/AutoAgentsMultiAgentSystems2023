@@ -82,22 +82,21 @@ def compare_results_pop(results, confidence=0.95, title="Agents Comparison", col
         """
     situations = list(results.keys())
     results = list(results.values())
+    names = range(0, len(results[0]), 5)
     for i in range(len(results)):
         results_i = results[i]
-        names = range(len(results_i))
         means = [result.mean() for result in results_i]
         std_devs = [result.std() for result in results_i]
         N = [result.size for result in results_i]
 
         errors = [standard_error(std_devs[j], N[j], confidence) for j in range(len(means))]
-        x_pos = np.arange(len(names))
         if plot:
             # Uncomment to get plot points
             # plt.plot(x_pos, means, "bo", color=colors[i] if colors is not None else "gray")
-            plt.errorbar(x_pos, means, errors, capsize=3, linewidth=1, color=colors[i] if colors is not None else "gray")
+            plt.errorbar(range(len(results_i)), means, errors, capsize=3, linewidth=1, color=colors[i] if colors is not None else "gray")
     plt.ylabel("Average population")
     plt.xlabel("Step number")
-    plt.xticks(x_pos, names)
+    plt.xticks(names, names)
     plt.title(title)
     plt.grid(True, axis='y')
     plt.tight_layout()
@@ -132,7 +131,7 @@ def compare_results_other_metrics(results, confidence=0.95, title="Agents Compar
         axs = [axs]
     for i in range(len(results)):
         results_i = results[i]
-        names = range(1, len(results_i) + 1)
+        names = [1] + list(range(5, len(results_i) + 1, 5))
         means = [result.mean() for result in results_i]
         std_devs = [result.std() for result in results_i]
         N = [result.size for result in results_i]

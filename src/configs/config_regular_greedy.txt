@@ -1,0 +1,6 @@
+g 16 16
+f 25
+s 200
+sit Regular full greedy
+t
+a regular y 25 40 24

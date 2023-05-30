@@ -1,0 +1,13 @@
+g 16 16
+f 25
+s 100
+sit Random full peaceful
+t
+a random n 25 40 24
+sit Random 50/50 greedy
+t
+a random n 25 40 12
+a random y 25 40 12
+sit Random full greedy
+t
+a random y 25 40 24

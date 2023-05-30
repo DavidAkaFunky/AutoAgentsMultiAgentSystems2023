@@ -5,17 +5,17 @@ from typing import Sequence
 import time
 import copy
 
-from environment import Agent
 from environment.utils import compare_results_pop, compare_results_other_metrics
 from environment.share_or_take import ShareOrTake
 
-from agents.blind_agent import BlindAgent
-from agents.basic_agent import BasicAgent
+from agents.random_agent import RandomAgent
+from agents.regular_agent import RegularAgent
 from agents.tribal_agent import TribalAgent
+from agents.rational_agent import RationalAgent
 
 COLOURS = ["orange", "blue", "green", "red", "purple", "brown", "pink", "gray", "olive", "cyan"]
 
-def run_multi_agent(environment: Env, starting_agents: list[Agent], n_episodes: int, render=False) -> np.ndarray:
+def run_multi_agent(environment: Env, starting_agents: list[RandomAgent], n_episodes: int, render=False) -> np.ndarray:
 
     population = np.zeros((n_episodes, environment.max_steps + 1))
     deaths = np.zeros((n_episodes, environment.max_steps))
@@ -41,12 +41,12 @@ def run_multi_agent(environment: Env, starting_agents: list[Agent], n_episodes: 
 
             if render:
                 environment.render()
-                time.sleep(0.5)
+                time.sleep(2.5)
 
             steps += 1
             
             # TODO: Add death and birth rates
-            observations, deaths_ep, births_ep, finished = environment.step(observations)
+            observations, deaths_ep, births_ep, finished = environment.step(observations, steps)
             deaths[episode, steps - 1] = deaths_ep
             births[episode, steps - 1] = births_ep
 
@@ -66,7 +66,7 @@ def run_multi_agent(environment: Env, starting_agents: list[Agent], n_episodes: 
 
     return population, deaths, births, population_greedy, population_non_greedy
 
-def parse_config(input_file) -> dict[str, list[Agent]]:
+def parse_config(input_file) -> dict[str, list[RandomAgent]]:
     situations = {}
     for line in input_file.readlines():
         line = line.strip().split()
@@ -86,18 +86,23 @@ def parse_config(input_file) -> dict[str, list[Agent]]:
                 else:
                     tribe_name = " ".join(line[1:])
             case "a":
-                blind = (line[1] == "y")
                 greedy = (line[2] == "y")
+                
                 energy = int(line[3])
                 reproduction_threshold = int(line[4])
                 quantity = int(line[-1])
+                
                 for _ in range(quantity):
-                    if blind:
-                        agent = BlindAgent(greedy, energy, reproduction_threshold)
-                    if tribe_name is None:
-                        agent = BasicAgent(greedy, energy, reproduction_threshold)
+                    if tribe_name is not None:
+                        agent = TribalAgent(tribe_name, energy, reproduction_threshold)
                     else:
-                        agent = TribalAgent(tribe_name, False, energy, reproduction_threshold)
+                        match line[1]:
+                            case "random":
+                                agent = RandomAgent(greedy, energy, reproduction_threshold)
+                            case "regular":
+                                agent = RegularAgent(greedy, energy, reproduction_threshold)
+                            case "rational":
+                                agent = RationalAgent(greedy, energy, reproduction_threshold)
                     situations[situation_name].append(agent)
     return situations, grid_shape, n_food, n_steps
 
@@ -120,14 +125,17 @@ if __name__ == '__main__':
     births = {}
     greedy_population = {}
     non_greedy_population = {}
+
     for situation, agents in situations.items():
         environment = ShareOrTake(grid_shape=grid_shape, n_food=n_food, max_steps=n_steps, debug=False)
         population_sit, deaths_sit, births_sit, greedy_sit, n_greedy_sit = run_multi_agent(environment, agents, episodes, render=render)
+        
         population[situation] = np.transpose(population_sit)
-        deaths[situation] = np.transpose(deaths_sit)
-        births[situation] = np.transpose(births_sit)
         greedy_population[situation] = np.transpose(greedy_sit)
         non_greedy_population[situation] = np.transpose(n_greedy_sit)
+
+        deaths[situation] = np.transpose(deaths_sit)
+        births[situation] = np.transpose(births_sit)
 
     compare_results_pop(
         population,

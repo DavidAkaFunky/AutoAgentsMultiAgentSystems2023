@@ -22,8 +22,6 @@ class ShareOrTake(gym.Env):
         # General grid parameters
         self.grid_shape = grid_shape
         self.max_steps = max_steps
-        self.step_count = 0
-        
 
         # Debugging
         self.debug = debug
@@ -33,7 +31,7 @@ class ShareOrTake(gym.Env):
 
         # Food
         self.n_food = n_food
-        self.food_energy = 7
+        self.food_energy = 5
 
         # Rendering
         self.draw_base_img()
@@ -55,8 +53,6 @@ class ShareOrTake(gym.Env):
         self.food_sub_grids_x = ceil(sqrt(self.n_food))
         self.food_sub_grids_y = ceil(self.n_food / self.food_sub_grids_x)
         self.add_remaining_food()
-
-        self.step_count = 0
 
         return {id: self.observation(id) for id in self.agents}
 
@@ -126,8 +122,7 @@ class ShareOrTake(gym.Env):
 
         return agents_pos, food_pos
 
-    def step(self, observations):
-        self.step_count += 1
+    def step(self, observations, step_count):
         finished = False
 
         # Everyone loses energy just to live!
@@ -136,7 +131,8 @@ class ShareOrTake(gym.Env):
         # Eating stage
         food_pos = copy.deepcopy(self.food_pos) # Allow food to be eaten during the loop
         for pos in food_pos:
-            neighbours, ids = self.get_neighbour_agents(pos, 1)
+            ids = [id for id in self.get_neighbour_agents(pos, 1) if not self.agents[id].has_eaten]
+            neighbours = len(ids)
             if neighbours == 0:
                 continue
             elif neighbours == 1:
@@ -163,14 +159,14 @@ class ShareOrTake(gym.Env):
             agent.see(observations[id])
 
             # An agent can either eat or move in a given step
-            # if agent.has_eaten:
-            #    self.print_if_debug("Agent {} has already eaten!".format(agent.id))
-            #    continue
+            if agent.has_eaten:
+               self.print_if_debug("Agent {} has already eaten!".format(agent.id))
+               continue
             for action in agent.action():
                 if self.update_agent_pos(agent, action, rewards):
                     break
 
-        if self.step_count >= self.max_steps:
+        if step_count >= self.max_steps:
             finished = True
 
         deaths = 0
@@ -289,11 +285,11 @@ class ShareOrTake(gym.Env):
 
     def get_neighbour_agents(self, object_pos, vision):
         # Check if agent is in neighbour
-        neighbours_xy = [pos for pos in self.get_neighbour_coordinates(object_pos, vision) if PRE_IDS['agent'] in self.grid[pos[0]][pos[1]]]
         agent_ids = []
-        for x, y in neighbours_xy:
-            agent_ids.append(int(self.grid[x][y].split(PRE_IDS['agent'])[1]))
-        return len(neighbours_xy), agent_ids
+        for [x, y] in self.get_neighbour_coordinates(object_pos, vision):
+            if PRE_IDS['agent'] in self.grid[x][y]:
+                agent_ids.append(int(self.grid[x][y].split(PRE_IDS['agent'])[1]))
+        return agent_ids
 
     def get_agent_neighbour_coordinates(self, agent):
         return self.get_neighbour_coordinates(agent.get_position(), agent.vision_range)
