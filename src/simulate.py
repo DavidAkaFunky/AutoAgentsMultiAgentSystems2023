@@ -14,6 +14,9 @@ from agents.rational_agent import RationalAgent
 
 COLOURS = ["orange", "blue", "green", "red", "purple", "brown", "pink", "gray", "olive", "cyan"]
 
+policies = {0: "RANDOM", 1:"BENEFIT_GREEDY", 2:"BENEFIT_YOUNGER", 3:"BENEFIT_OLDER", 
+            4: "BENEFIT_MORE_ENERGY", 5: "BENEFIT_LESS_ENERGY"}
+
 def run_multi_agent(environment: Env, starting_agents: list[RandomAgent], n_episodes: int, render=False) -> np.ndarray:
 
     population = np.zeros((n_episodes, environment.max_steps + 1))
@@ -67,11 +70,14 @@ def run_multi_agent(environment: Env, starting_agents: list[RandomAgent], n_epis
 
 def parse_config(input_file) -> dict[str, list[RandomAgent]]:
     situations = {}
+    policy = "RANDOM"
     for line in input_file.readlines():
         line = line.strip().split()
         match line[0]:
             case "g":
                 grid_shape = tuple(map(int, line[1:]))
+            case "p":
+                policy = policies[int(line[1:][0])]
             case "f":
                 n_food = int(line[1])
             case "s":
@@ -103,7 +109,7 @@ def parse_config(input_file) -> dict[str, list[RandomAgent]]:
                             case "rational":
                                 agent = RationalAgent(greedy, energy, reproduction_threshold)
                     situations[situation_name].append(agent)
-    return situations, grid_shape, n_food, n_steps
+    return situations, grid_shape, n_food, n_steps, policy
 
 if __name__ == '__main__':
 
@@ -117,7 +123,7 @@ if __name__ == '__main__':
     input_file = opt.input_file
     render = opt.render
     episodes = opt.episodes
-    situations, grid_shape, n_food, n_steps = parse_config(input_file)
+    situations, grid_shape, n_food, n_steps, policy = parse_config(input_file)
     
     population = {}
     deaths = {}
@@ -126,7 +132,7 @@ if __name__ == '__main__':
     non_greedy_population = {}
 
     for situation, agents in situations.items():
-        environment = ShareOrTake(grid_shape=grid_shape, n_food=n_food, max_steps=n_steps, debug=False)
+        environment = ShareOrTake(grid_shape=grid_shape, n_food=n_food, max_steps=n_steps, debug=False, policy=policy)
         population_sit, deaths_sit, births_sit, greedy_sit, n_greedy_sit = run_multi_agent(environment, agents, episodes, render=render)
         
         population[situation] = np.transpose(population_sit)

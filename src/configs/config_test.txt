@@ -1,6 +1,8 @@
-g 10 10
-f 5
-s 20
-sit All Non Greedy
+g 16 16
+p 0
+f 25
+s 100
+sit Regular 50/50 greedy
 t
-a y n 5 20 1
+a regular n 25 40 12
+a regular y 25 40 12
