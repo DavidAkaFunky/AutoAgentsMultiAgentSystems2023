@@ -11,11 +11,9 @@ from agents.random_agent import RandomAgent
 from agents.regular_agent import RegularAgent
 from agents.tribal_agent import TribalAgent
 from agents.rational_agent import RationalAgent
+from agents.evolutive_agent import EvolutiveAgent
 
 COLOURS = ["orange", "blue", "green", "red", "purple", "brown", "pink", "gray", "olive", "cyan"]
-
-policies = {0: "RANDOM", 1:"BENEFIT_GREEDY", 2:"BENEFIT_YOUNGER", 3:"BENEFIT_OLDER", 
-            4: "BENEFIT_MORE_ENERGY", 5: "BENEFIT_LESS_ENERGY"}
 
 def run_multi_agent(environment: Env, starting_agents: list[RandomAgent], n_episodes: int, render=False) -> np.ndarray:
 
@@ -77,7 +75,7 @@ def parse_config(input_file) -> dict[str, list[RandomAgent]]:
             case "g":
                 grid_shape = tuple(map(int, line[1:]))
             case "p":
-                policy = policies[int(line[1:][0])]
+                policy = line[1:]
             case "f":
                 n_food = int(line[1])
             case "s":
@@ -108,6 +106,8 @@ def parse_config(input_file) -> dict[str, list[RandomAgent]]:
                                 agent = RegularAgent(greedy, energy, reproduction_threshold)
                             case "rational":
                                 agent = RationalAgent(greedy, energy, reproduction_threshold)
+                            case "evolutive":
+                                agent = EvolutiveAgent(greedy, energy, reproduction_threshold)
                     situations[situation_name].append(agent)
     return situations, grid_shape, n_food, n_steps, policy
 

@@ -15,6 +15,7 @@ class TribalAgent(RegularAgent):
         self.tribe = tribe
 
     def share_or_take(self, other, food_energy):
+        self.has_eaten = True
         try:
             tribe = other.tribe
         except AttributeError:
@@ -23,7 +24,6 @@ class TribalAgent(RegularAgent):
             self.energy += food_energy * 0.5
         else:
             pass # The energy earned with food is lost during the fight
-        self.has_eaten = True
 
     def __repr__(self) -> str:
         return f"{self.name} ({self.tribe}) - Energy: {self.energy} - Position: {self.pos}"

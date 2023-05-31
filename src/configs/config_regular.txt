@@ -1,5 +1,5 @@
 g 16 16
-p 1
+p BENEFIT_YOUNGER
 f 25
 s 100
 sit Regular full peaceful

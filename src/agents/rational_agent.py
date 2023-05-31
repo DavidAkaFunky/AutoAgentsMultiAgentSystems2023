@@ -14,8 +14,6 @@ class RationalAgent(RegularAgent):
     def __init__(self, greedy, energy, reproduction_threshold):
         super().__init__(greedy, energy, reproduction_threshold)
         self.name = "Rational agent"
-        self.observation = None
-        self.vision_range = 4
 
     def action(self) -> list:
         agents_positions = self.observation[0]

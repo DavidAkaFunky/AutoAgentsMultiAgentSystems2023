@@ -18,7 +18,7 @@ class ShareOrTake(gym.Env):
 
     metadata = {'render.modes': ['human', 'rgb_array']}
 
-    def __init__(self, grid_shape=(50, 50), n_food=10, max_steps=200, debug=False, policy=RANDOM):
+    def __init__(self, grid_shape=(50, 50), n_food=10, max_steps=200, debug=False, policy="RANDOM"):
 
         # General grid parameters
         self.grid_shape = grid_shape
@@ -128,8 +128,9 @@ class ShareOrTake(gym.Env):
     def step(self, observations, step_count):
         finished = False
 
-        # Everyone loses energy just to live!
-        rewards = {id: -self.agents[id].living_cost for id in self.agents}
+        # Everyone loses energy (more as they get older) just to live!
+        rewards = {id: -self.agents[id].living_cost * (1 + self.agents[id].age / 320) for id in self.agents}
+        # rewards = {id: -self.agents[id].living_cost for id in self.agents}
         
         # Eating stage
         food_pos = copy.deepcopy(self.food_pos) # Allow food to be eaten during the loop
@@ -188,6 +189,7 @@ class ShareOrTake(gym.Env):
             else:
                 agent.has_eaten = False # Reset the agent's has_eaten flag
                 agent.age += 1
+                agent.adapt() # Update the agent's greediness parameter (if evolutive agent)
                 if agent.energy >= agent.reproduction_threshold and self.reproduce_agent(agent):
                     births += 1
 
@@ -196,23 +198,23 @@ class ShareOrTake(gym.Env):
     def sort_by_policy(self, agents):
         random.shuffle(agents)
         match self.policy:
-            case 0:
+            case "RANDOM":
                 pass
-            case 1:
+            case "BENEFIT_GREEDY":
                 # Sort agents by greediness
-                agents.sort(key=lambda id: self.agents[id].is_greedy, reverse=True)
-            case 2:
+                agents.sort(key=lambda id: id in agents and self.agents[id].is_greedy, reverse=True)
+            case "BENEFIT_YOUNGER":
                 # Benefit younger agents
-                agents.sort(key=lambda id: self.agents[id].age, reverse=True)
-            case 3:
+                agents.sort(key=lambda id: id in agents and self.agents[id].age, reverse=True)
+            case "BENEFIT_OLDER":
                 # Benefit older agents
-                agents.sort(key=lambda id: self.agents[id].age)
-            case 4:
+                agents.sort(key=lambda id: id in agents and self.agents[id].age)
+            case "BENEFIT_MORE_ENERGY":
                 # Benefit agents with more energy
-                agents.sort(key=lambda id: self.agents[id].energy, reverse=True)
-            case 5:
+                agents.sort(key=lambda id: id in agents and self.agents[id].energy, reverse=True)
+            case "BENEFIT_LESS_ENERGY":
                 # Benefit agents with less energy
-                agents.sort(key=lambda id: self.agents[id].energy)
+                agents.sort(key=lambda id: id in agents and self.agents[id].energy)
 
     def draw_base_img(self):
         self.base_img = draw_grid(self.grid_shape[0], self.grid_shape[1], cell_size=CELL_SIZE, fill='white')

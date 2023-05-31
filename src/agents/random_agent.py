@@ -11,7 +11,7 @@ class RandomAgent():
     """
 
     def __init__(self, greedy, energy, reproduction_threshold):
-        self.name = "Blind agent"
+        self.name = "Random agent"
         self.reproduction_threshold = reproduction_threshold
         self.vision_range = 1
         self.living_cost = 1
@@ -44,6 +44,7 @@ class RandomAgent():
         self.age = 0
 
     def share_or_take(self, other, food_energy):
+        self.has_eaten = True
         if self.is_greedy and other.is_greedy:
             pass # The energy earned with food is lost during the fight
         elif self.is_greedy:
@@ -52,7 +53,9 @@ class RandomAgent():
             self.energy += food_energy * 0.25
         else:
             self.energy += food_energy * 0.5
-        self.has_eaten = True
+
+    def adapt(self):
+        pass
 
     def __repr__(self) -> str:
         return f"{self.name} - Energy: {self.energy} - Position: {self.pos} - Greedy: {self.is_greedy}"
