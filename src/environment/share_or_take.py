@@ -13,11 +13,12 @@ from gym.utils import seeding
 
 from ma_gym.envs.utils.draw import draw_grid, fill_cell, draw_circle, write_cell_text
 
+RANDOM, BENEFIT_GREEDY, BENEFIT_YOUNGER, BENEFIT_OLDER, BENEFIT_MORE_ENERGY, BENEFIT_LESS_ENERGY = range(6)
 class ShareOrTake(gym.Env):
 
     metadata = {'render.modes': ['human', 'rgb_array']}
 
-    def __init__(self, grid_shape=(50, 50), n_food=10, max_steps=200, debug=False):
+    def __init__(self, grid_shape=(50, 50), n_food=10, max_steps=200, debug=False, policy=RANDOM):
 
         # General grid parameters
         self.grid_shape = grid_shape
@@ -36,6 +37,8 @@ class ShareOrTake(gym.Env):
         # Rendering
         self.draw_base_img()
         self.viewer = None
+
+        self.policy = policy
 
     def reset(self, agents):
         # Agents
@@ -139,11 +142,12 @@ class ShareOrTake(gym.Env):
                 agent = self.agents[ids[0]]
                 self.agent_eat(agent, pos)
             else:
+                agents = [self.agents[id] for id in ids]
                 if neighbours > 2:
                     # Choose two random agents to share the food
-                    ids = random.sample(ids, 2)
-                agent1 = self.agents[ids[0]]
-                agent2 = self.agents[ids[1]]
+                    self.sort_by_policy(agents)
+                agent1 = self.agents[agents[0].id]
+                agent2 = self.agents[agents[1].id]
                 self.share_or_take(agent1, agent2, pos)
 
         # Add food if any was eaten
@@ -151,7 +155,7 @@ class ShareOrTake(gym.Env):
 
         # Randomise the order in which agents act (for fairness)
         order = list(self.agents.keys())
-        random.shuffle(order)
+        self.sort_by_policy(order)
 
         # Get each agent's set of actions
         for id in order:
@@ -183,11 +187,32 @@ class ShareOrTake(gym.Env):
                     break
             else:
                 agent.has_eaten = False # Reset the agent's has_eaten flag
+                agent.age += 1
                 if agent.energy >= agent.reproduction_threshold and self.reproduce_agent(agent):
                     births += 1
 
         return {id: self.observation(id) for id in self.agents}, deaths, births, finished
 
+    def sort_by_policy(self, agents):
+        random.shuffle(agents)
+        match self.policy:
+            case 0:
+                pass
+            case 1:
+                # Sort agents by greediness
+                agents.sort(key=lambda id: self.agents[id].is_greedy, reverse=True)
+            case 2:
+                # Benefit younger agents
+                agents.sort(key=lambda id: self.agents[id].age, reverse=True)
+            case 3:
+                # Benefit older agents
+                agents.sort(key=lambda id: self.agents[id].age)
+            case 4:
+                # Benefit agents with more energy
+                agents.sort(key=lambda id: self.agents[id].energy, reverse=True)
+            case 5:
+                # Benefit agents with less energy
+                agents.sort(key=lambda id: self.agents[id].energy)
 
     def draw_base_img(self):
         self.base_img = draw_grid(self.grid_shape[0], self.grid_shape[1], cell_size=CELL_SIZE, fill='white')

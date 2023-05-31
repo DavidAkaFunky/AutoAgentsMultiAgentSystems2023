@@ -16,3 +16,6 @@ Métricas:
 - Energia média
     - Geral
     - Dividida por tipos (greedy e pacífico)
+
+QUANDO O RATIONAL NÃO SABE PARA ONDE IR:
+- Fixar um ponto

@@ -23,6 +23,7 @@ class RandomAgent():
         self.is_greedy = greedy
         self.has_eaten = False
         self.id = None
+        self.age = None
 
     def action(self) -> int:
         # Allow the agent to move randomly to eventually find some food
@@ -40,6 +41,7 @@ class RandomAgent():
         self.energy = self.base_energy
         self.has_eaten = False
         self.id = id
+        self.age = 0
 
     def share_or_take(self, other, food_energy):
         if self.is_greedy and other.is_greedy:

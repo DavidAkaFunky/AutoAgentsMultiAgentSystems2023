@@ -18,16 +18,24 @@ class RegularAgent(RandomAgent):
         self.observation = None
         self.vision_range = 4
 
-    def action(self) -> int:
+    def action(self) -> list:
         food_positions = self.observation[1]
         closest_food_positions = self.closest_food(food_positions)
-        if closest_food_positions is None:
-            # Allow the agent to move randomly to eventually find some food
-            all_actions = list(range(self.n_actions))[:-1]
-        else:
-            all_actions = [self.direction_to_follow_food(pos) for pos in closest_food_positions]
-        random.shuffle(all_actions)
-        return all_actions + [STAY]
+        # Allow the agent to move randomly to eventually find some food
+        random_actions = list(range(self.n_actions))[:-1]
+        random.shuffle(random_actions)
+        choices = []
+        if closest_food_positions is not None:
+            preferred_actions, extra_actions = [], []
+            actions = [self.direction_to_follow_food(pos) for pos in closest_food_positions]
+            random.shuffle(actions)
+            for action, extra_action in actions:
+                preferred_actions.append(action)
+                for x in extra_action:
+                    extra_actions.append(x)
+            choices += preferred_actions + extra_actions + random_actions + [STAY]
+        choices += random_actions + [STAY]
+        return list(dict.fromkeys(choices))
     
     def see(self, observation: np.ndarray):
         self.observation = observation
@@ -50,12 +58,14 @@ class RegularAgent(RandomAgent):
         distances = np.array(food_position) - np.array(self.pos)
         abs_distances = np.absolute(distances)
         if abs_distances[1] > abs_distances[0]:
-            return self._close_horizontally(distances)
+            return self._close_horizontally(distances), [UP, DOWN]
         elif abs_distances[1] < abs_distances[0]:
-            return self._close_vertically(distances)
+            return self._close_vertically(distances), [LEFT, RIGHT]
         else:
             roll = random.uniform(0, 1)
-            return self._close_horizontally(distances) if roll > 0.5 else self._close_vertically(distances)
+            if roll > 0.5:
+                return self._close_horizontally(distances), [UP, DOWN]
+            return self._close_vertically(distances), [LEFT, RIGHT]
 
     # ############### #
     # Private Methods #

@@ -1,7 +1,6 @@
 import argparse
 import numpy as np
 from gym import Env
-from typing import Sequence
 import time
 import copy
 
