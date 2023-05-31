@@ -4,6 +4,9 @@ from gym import Env
 from typing import Sequence
 import time
 import copy
+import multiprocessing
+import concurrent.futures
+from threading import current_thread
 
 from environment.utils import compare_results_pop, compare_results_other_metrics
 from environment.share_or_take import ShareOrTake
@@ -12,59 +15,67 @@ from agents.random_agent import RandomAgent
 from agents.regular_agent import RegularAgent
 from agents.tribal_agent import TribalAgent
 from agents.rational_agent import RationalAgent
+from threading import get_ident
+from threading import get_native_id
 
 COLOURS = ["orange", "blue", "green", "red", "purple", "brown", "pink", "gray", "olive", "cyan"]
 
-def run_multi_agent(environment: Env, starting_agents: list[RandomAgent], n_episodes: int, render=False) -> np.ndarray:
+population_sit = []
+deaths_sit = []
+births_sit = []
+population_greedy_sit = []
+population_non_greedy_sit = []
 
-    population = np.zeros((n_episodes, environment.max_steps + 1))
-    deaths = np.zeros((n_episodes, environment.max_steps))
-    births = np.zeros((n_episodes, environment.max_steps))
-    population_greedy = np.zeros((n_episodes, environment.max_steps + 1))
-    population_non_greedy = np.zeros((n_episodes, environment.max_steps + 1))
+def run_multi_agent(starting_agents: list[RandomAgent], episode: int, grid_shape: int, n_food: int, n_steps: int, render=False) -> np.ndarray:
 
-    for episode in range(n_episodes):
-        agents = copy.deepcopy(starting_agents)
+    global population_sit
+    global deaths_sit
+    global births_sit
+    global population_greedy_sit
+    global population_non_greedy_sit
 
-        print("Starting episode {} in {}".format(episode + 1, n_episodes))
-        steps = 0
-        finished = False
-        observations = environment.reset(agents)
-        for agent in agents:
-            agent.reset_parameters(agent.id)
+    environment = ShareOrTake(grid_shape=grid_shape, n_food=n_food, max_steps=n_steps, debug=False)
+    agents = copy.deepcopy(starting_agents)
 
-        while True:
-            population[episode, steps] = len(environment.agents)
-            greedy_agents = sum(environment.agents[agent].is_greedy for agent in environment.agents)
-            population_greedy[episode, steps] = greedy_agents
-            population_non_greedy[episode, steps] = len(environment.agents) - greedy_agents
+    thread = current_thread()
 
-            if render:
-                environment.render()
-                time.sleep(2.5)
+    print("Starting episode {} by thread {}".format(episode, thread.name))
+    steps = 0
+    finished = False
+    observations = environment.reset(agents)
+    for agent in agents:
+        agent.reset_parameters(agent.id)
 
-            steps += 1
-            
-            # TODO: Add death and birth rates
-            observations, deaths_ep, births_ep, finished = environment.step(observations, steps)
-            deaths[episode, steps - 1] = deaths_ep
-            births[episode, steps - 1] = births_ep
-
-            if finished:
-                break
-
-        population[episode, steps] = len(environment.agents)
+    while True:
+        population_sit[episode, steps] = len(environment.agents)
         greedy_agents = sum(environment.agents[agent].is_greedy for agent in environment.agents)
-        population_greedy[episode, steps] = greedy_agents
-        population_non_greedy[episode, steps] = len(environment.agents) - greedy_agents
+        population_greedy_sit[episode, steps] = greedy_agents
+        population_non_greedy_sit[episode, steps] = len(environment.agents) - greedy_agents
+
+        if render:
+            environment.render()
+            time.sleep(2.5)
+
+        steps += 1
+        
+        # TODO: Add death and birth rates
+        observations, deaths_ep, births_ep, finished = environment.step(observations, steps)
+        deaths_sit[episode, steps - 1] = deaths_ep
+        births_sit[episode, steps - 1] = births_ep
+
+        if finished:
+            break
+
+    population_sit[episode, steps] = len(environment.agents)
+    greedy_agents = sum(environment.agents[agent].is_greedy for agent in environment.agents)
+    population_greedy_sit[episode, steps] = greedy_agents
+    population_non_greedy_sit[episode, steps] = len(environment.agents) - greedy_agents
 
 
     if render:
         environment.render()
         environment.close()
-            
 
-    return population, deaths, births, population_greedy, population_non_greedy
 
 def parse_config(input_file) -> dict[str, list[RandomAgent]]:
     situations = {}
@@ -126,13 +137,24 @@ if __name__ == '__main__':
     greedy_population = {}
     non_greedy_population = {}
 
+    n_cores = multiprocessing.cpu_count()
+
     for situation, agents in situations.items():
-        environment = ShareOrTake(grid_shape=grid_shape, n_food=n_food, max_steps=n_steps, debug=False)
-        population_sit, deaths_sit, births_sit, greedy_sit, n_greedy_sit = run_multi_agent(environment, agents, episodes, render=render)
+        population_sit = np.zeros((episodes, n_steps + 1))
+        deaths_sit = np.zeros((episodes, n_steps))
+        births_sit = np.zeros((episodes, n_steps))
+        population_greedy_sit = np.zeros((episodes, n_steps + 1))
+        population_non_greedy_sit = np.zeros((episodes, n_steps + 1))
+
+        n_episodes = list(range(1, episodes+1))
+
+        with concurrent.futures.ThreadPoolExecutor(max_workers=n_cores) as executor:
+            for ep in n_episodes:
+                executor.submit(run_multi_agent, agents, ep, grid_shape, n_food, n_steps)
         
         population[situation] = np.transpose(population_sit)
-        greedy_population[situation] = np.transpose(greedy_sit)
-        non_greedy_population[situation] = np.transpose(n_greedy_sit)
+        greedy_population[situation] = np.transpose(population_greedy_sit)
+        non_greedy_population[situation] = np.transpose(population_non_greedy_sit)
 
         deaths[situation] = np.transpose(deaths_sit)
         births[situation] = np.transpose(births_sit)
