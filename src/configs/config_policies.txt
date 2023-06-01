@@ -1,3 +1,4 @@
+filename test_policies
 g 16 16
 f 25
 s 100

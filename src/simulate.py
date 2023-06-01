@@ -3,6 +3,7 @@ import numpy as np
 from gym import Env
 import time
 import copy
+import os
 
 from utils import compare_results_pop, compare_results_other_metrics
 from environment.share_or_take import ShareOrTake
@@ -77,9 +78,12 @@ def parse_config(input_file) -> dict[str, list[RandomAgent]]:
     situations = {}
     policies = {}
     tribe_name = None
+    filename = None
     for line in input_file.readlines():
         line = line.strip().split()
         match line[0]:
+            case "filename":
+                filename = " ".join(line[1:])
             case "g":
                 grid_shape = tuple(map(int, line[1:]))
             case "p":
@@ -117,7 +121,7 @@ def parse_config(input_file) -> dict[str, list[RandomAgent]]:
                             case "evolutive":
                                 agent = EvolutiveAgent(greedy, energy, reproduction_threshold)
                     situations[situation_name].append(agent)
-    return situations, grid_shape, n_food, n_steps, policies
+    return situations, grid_shape, n_food, n_steps, policies, filename
 
 if __name__ == '__main__':
 
@@ -131,7 +135,7 @@ if __name__ == '__main__':
     input_file = opt.input_file
     render = opt.render
     episodes = opt.episodes
-    situations, grid_shape, n_food, n_steps, policies = parse_config(input_file)
+    situations, grid_shape, n_food, n_steps, policies, filename = parse_config(input_file)
     
     population = {}
     greedy_population = {}
@@ -154,59 +158,74 @@ if __name__ == '__main__':
         avg_peaceful_energy[situation] = np.transpose(avg_peaceful_energy_sit)
         deaths[situation] = np.transpose(deaths_sit)
         births[situation] = np.transpose(births_sit)
+    
+    if(filename != None):
+        try:
+            os.mkdir("../results")
+            print("results folder created")
+        except:
+            print("Results folder already created, moving on")
 
     compare_results_pop(
         population,
         title="Population Comparison on 'Share or Take' Environment",
         plot=True,
-        colors=COLOURS[:len(situations)]
+        colors=COLOURS[:len(situations)],
+        filename = filename
     )
 
     compare_results_pop(
         greedy_population,
         title="Greedy Population Comparison on 'Share or Take' Environment",
         plot=True,
-        colors=COLOURS[:len(situations)]
+        colors=COLOURS[:len(situations)],
+        filename = filename
     )
 
     compare_results_pop(
         peaceful_population,
         title="Peaceful Comparison on 'Share or Take' Environment",
         plot=True,
-        colors=COLOURS[:len(situations)]
+        colors=COLOURS[:len(situations)],
+        filename = filename
     )
 
     compare_results_pop(
         avg_energy,
         title="Avg. Energy Comparison on 'Share or Take' Environment",
         plot=True,
-        colors=COLOURS[:len(situations)]
+        colors=COLOURS[:len(situations)],
+        filename = filename
     )
 
     compare_results_pop(
         avg_greedy_energy,
         title="Avg. Energy (Greedy) Comparison on 'Share or Take' Environment",
         plot=True,
-        colors=COLOURS[:len(situations)]
+        colors=COLOURS[:len(situations)],
+        filename = filename
     )
 
     compare_results_pop(
         avg_peaceful_energy,
         title="Avg. Energy (Peaceful) Comparison on 'Share or Take' Environment",
         plot=True,
-        colors=COLOURS[:len(situations)]
+        colors=COLOURS[:len(situations)],
+        filename = filename
     )
 
     compare_results_other_metrics(
         deaths,
         title="Deaths Comparison on 'Share or Take' Environment",
         metric="Deaths per step",
-        colors=COLOURS[:len(situations)]
+        colors=COLOURS[:len(situations)],
+        filename = filename
     )
 
     compare_results_other_metrics(
         births,
         title="Births Comparison on 'Share or Take' Environment",
         metric="Births per step",
-        colors=COLOURS[:len(situations)]
+        colors=COLOURS[:len(situations)],
+        filename = filename
     )

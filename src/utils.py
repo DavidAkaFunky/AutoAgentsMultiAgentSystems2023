@@ -59,7 +59,7 @@ def standard_error(std_dev, n, confidence):
     """
     return z_table(confidence) * (std_dev / math.sqrt(n))
 
-def compare_results_pop(results, confidence=0.95, title="Agents Comparison", colors=None, plot=False):
+def compare_results_pop(results, filename, confidence=0.95, title="Agents Comparison", colors=None, plot=False):
 
     """Displays a bar plot comparing the performance of different agents/teams.
 
@@ -81,6 +81,7 @@ def compare_results_pop(results, confidence=0.95, title="Agents Comparison", col
     situations = list(results.keys())
     results = list(results.values())
     names = range(0, len(results[0]), len(results[0]) // 20)
+    plt.figure().set_figwidth(10)
     for i in range(len(results)):
         results_i = results[i]
         means = [result.mean() for result in results_i]
@@ -99,9 +100,12 @@ def compare_results_pop(results, confidence=0.95, title="Agents Comparison", col
     plt.grid(True, axis='y')
     plt.tight_layout()
     plt.legend(situations)
-    plt.show()
+    if(filename == None):
+        plt.show()
+    else:
+        plt.savefig("../results/{}-{}.png".format(filename, title))
 
-def compare_results_other_metrics(results, confidence=0.95, title="Agents Comparison", metric="", colors=None, plot=False):
+def compare_results_other_metrics(results, filename  = None, confidence=0.95, title="Agents Comparison", metric="", colors=None, plot=False):
 
     """Displays a bar plot comparing the performance of different agents/teams.
 
@@ -123,11 +127,11 @@ def compare_results_other_metrics(results, confidence=0.95, title="Agents Compar
     situations = list(results.keys())
     results = list(results.values())
     x_pos = np.arange(len(results[0]))
-    _, axs = plt.subplots(2, math.ceil(len(colors) / 2), layout="constrained")
+    _, axs = plt.subplots(2, math.ceil(len(colors) / 2), layout="constrained", figsize=(20, 5))
     # To allow iteration even with only one subplot
-    if len(colors) == 1:
+    if math.ceil(len(colors) / 2) == 1:
         axs = [axs]
-    for i in range(2):
+    for i in range(len(axs)):
         for j in range(math.ceil(len(colors) / 2)):
             pos = i * math.ceil(len(colors) / 2) + j
             results_i = results[pos]
@@ -145,4 +149,7 @@ def compare_results_other_metrics(results, confidence=0.95, title="Agents Compar
             axs[i][j].set_title(situations[pos])
             axs[i][j].yaxis.grid(True)
             axs[i][j].bar(x_pos, means, yerr=errors, align='center', alpha=0.5, color=colors[pos] if colors is not None else "gray", ecolor=colors[pos] if colors is not None else "gray", capsize=3)
-    plt.show()
+    if(filename == None):
+        plt.show()
+    else:
+        plt.savefig("../results/{}-{}.png".format(filename, title))
