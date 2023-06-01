@@ -57,7 +57,15 @@ class ShareOrTake(gym.Env):
         self.food_sub_grids_y = ceil(self.n_food / self.food_sub_grids_x)
         self.add_remaining_food()
 
-        return {id: self.observation(id) for id in self.agents}
+        greedy_agents = sum(self.agents[agent].is_greedy for agent in self.agents)
+        peaceful_agents = len(self.agents) - greedy_agents
+        avg_energy = sum(self.agents[id].energy for id in self.agents) / len(self.agents)
+        greedy_avg_energy = sum(self.agents[id].energy for id in self.agents if self.agents[id].is_greedy) / greedy_agents
+        peaceful_avg_energy = sum(self.agents[id].energy for id in self.agents if not self.agents[id].is_greedy) / peaceful_agents
+        
+        return {id: self.observation(id) for id in self.agents}, \
+                len(self.agents), greedy_agents, peaceful_agents, \
+                avg_energy, greedy_avg_energy, peaceful_avg_energy
 
     def add_all_agents(self, agents):
         """
@@ -95,7 +103,7 @@ class ShareOrTake(gym.Env):
         This is called to initialise the environment and after an agent eats food.
         """
         food_to_add = self.n_food - self.available_n_food
-        for i in range(food_to_add):
+        for _ in range(food_to_add):
             pos = self.get_empty_position_food()
             if pos is None:
                 self.print_if_debug("No more empty positions!")
@@ -193,7 +201,16 @@ class ShareOrTake(gym.Env):
                 if agent.energy >= agent.reproduction_threshold and self.reproduce_agent(agent):
                     births += 1
 
-        return {id: self.observation(id) for id in self.agents}, deaths, births, finished
+        greedy_agents = sum(self.agents[agent].is_greedy for agent in self.agents)
+        peaceful_agents = len(self.agents) - greedy_agents
+        avg_energy = sum(self.agents[id].energy for id in self.agents) / len(self.agents) if len(self.agents) > 0 else 0
+        greedy_avg_energy = sum(self.agents[id].energy for id in self.agents if self.agents[id].is_greedy) / greedy_agents if greedy_agents > 0 else 0
+        peaceful_avg_energy = sum(self.agents[id].energy for id in self.agents if not self.agents[id].is_greedy) / peaceful_agents if peaceful_agents > 0 else 0
+        
+        return {id: self.observation(id) for id in self.agents}, \
+                len(self.agents), greedy_agents, peaceful_agents, \
+                avg_energy, greedy_avg_energy, peaceful_avg_energy, \
+                deaths, births, finished
 
     def sort_by_policy(self, agents):
         random.shuffle(agents)

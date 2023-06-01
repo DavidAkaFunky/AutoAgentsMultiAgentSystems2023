@@ -1,6 +1,4 @@
 import math
-from typing import Optional, Sequence
-
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -82,7 +80,7 @@ def compare_results_pop(results, confidence=0.95, title="Agents Comparison", col
         """
     situations = list(results.keys())
     results = list(results.values())
-    names = range(0, len(results[0]), 5)
+    names = range(0, len(results[0]), len(results[0]) // 20)
     for i in range(len(results)):
         results_i = results[i]
         means = [result.mean() for result in results_i]
@@ -125,26 +123,26 @@ def compare_results_other_metrics(results, confidence=0.95, title="Agents Compar
     situations = list(results.keys())
     results = list(results.values())
     x_pos = np.arange(len(results[0]))
-    _, axs = plt.subplots(len(colors))
+    _, axs = plt.subplots(2, math.ceil(len(colors) / 2), layout="constrained")
     # To allow iteration even with only one subplot
     if len(colors) == 1:
         axs = [axs]
-    for i in range(len(results)):
-        results_i = results[i]
-        names = [1] + list(range(5, len(results_i) + 1, 5))
-        means = [result.mean() for result in results_i]
-        std_devs = [result.std() for result in results_i]
-        N = [result.size for result in results_i]
+    for i in range(2):
+        for j in range(math.ceil(len(colors) / 2)):
+            pos = i * math.ceil(len(colors) / 2) + j
+            results_i = results[pos]
+            names = [1] + list(range(5, len(results_i) + 1, len(results_i) // 20))
+            means = [result.mean() for result in results_i]
+            std_devs = [result.std() for result in results_i]
+            N = [result.size for result in results_i]
 
-        errors = [standard_error(std_devs[i], N[i], confidence) for i in range(len(means))]
-        
-        axs[i].set_ylabel(f"Average {metric}")
-        axs[i].set_xlabel("Step number")
-        axs[i].set_xticks(x_pos)
-        axs[i].set_xticklabels(names)
-        axs[i].set_title(situations[i])
-        axs[i].yaxis.grid(True)
-        axs[i].bar(x_pos, means, yerr=errors, align='center', alpha=0.5, color=colors[i] if colors is not None else "gray", ecolor=colors[i] if colors is not None else "gray", capsize=3)
-    # plt.title(title)
-    plt.tight_layout()
+            errors = [standard_error(std_devs[i], N[i], confidence) for i in range(len(means))]
+
+            axs[i][j].set_ylabel(f"Average {metric}")
+            axs[i][j].set_xlabel("Step number")
+            axs[i][j].set_xticks(names)
+            axs[i][j].set_xticklabels(names)
+            axs[i][j].set_title(situations[pos])
+            axs[i][j].yaxis.grid(True)
+            axs[i][j].bar(x_pos, means, yerr=errors, align='center', alpha=0.5, color=colors[pos] if colors is not None else "gray", ecolor=colors[pos] if colors is not None else "gray", capsize=3)
     plt.show()

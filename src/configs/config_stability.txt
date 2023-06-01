@@ -1,0 +1,11 @@
+g 16 16
+f 25
+s 1000
+sit Regular 1 greedy
+t
+a regular n 25 40 23
+a regular y 25 40 1
+sit Regular 1 peaceful
+t
+a regular n 25 40 1
+a regular y 25 40 23
