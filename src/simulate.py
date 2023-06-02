@@ -4,6 +4,7 @@ from gym import Env
 import time
 import copy
 import os
+import multiprocessing
 
 from utils import compare_results_pop, compare_results_other_metrics
 from environment.share_or_take import ShareOrTake
@@ -16,7 +17,7 @@ from agents.evolutive_agent import EvolutiveAgent
 
 COLOURS = ["orange", "blue", "green", "red", "purple", "brown", "pink", "gray", "olive", "cyan"]
 
-def run_multi_agent(environment: Env, starting_agents: list[RandomAgent], n_episodes: int, render=False) -> np.ndarray:
+def run_multi_agent(environment: Env, starting_agents: list[RandomAgent], n_episodes: int, return_dict: dict, render=False) -> np.ndarray:
 
     population = np.zeros((n_episodes, environment.max_steps + 1))
     avg_energy = np.zeros((n_episodes, environment.max_steps + 1))
@@ -72,7 +73,14 @@ def run_multi_agent(environment: Env, starting_agents: list[RandomAgent], n_epis
         environment.close()
             
     # TODO Return energy-related metrics
-    return population, population_greedy, population_peaceful, avg_energy, avg_greedy_energy, avg_peaceful_energy, deaths, births
+    return_dict["population_sit"] = population
+    return_dict["greedy_sit"] = population_greedy
+    return_dict["n_greedy_sit"] = population_peaceful
+    return_dict["avg_energy_sit"] = avg_energy
+    return_dict["avg_greedy_energy_sit"] = avg_greedy_energy
+    return_dict["avg_peaceful_energy_sit"] = avg_peaceful_energy
+    return_dict["deaths_sit"] = deaths
+    return_dict["births_sit"] = births
 
 def parse_config(input_file) -> dict[str, list[RandomAgent]]:
     situations = {}
@@ -146,18 +154,32 @@ if __name__ == '__main__':
     deaths = {}
     births = {}
 
+    jobs = []
+    return_dicts_proc = []
+    manager = multiprocessing.Manager() # create only 1 mgr
+
     for situation, agents in situations.items():
+        return_dict = manager.dict()
+        return_dict["situation"] = situation
+        return_dicts_proc.append(return_dict)
         environment = ShareOrTake(grid_shape=grid_shape, n_food=n_food, max_steps=n_steps, debug=False, policy=policies[situation])
-        population_sit, greedy_sit, n_greedy_sit, avg_energy_sit, avg_greedy_energy_sit, avg_peaceful_energy_sit, deaths_sit, births_sit = run_multi_agent(environment, agents, episodes, render=render)
+        p = multiprocessing.Process(target=run_multi_agent, args=(environment, agents, episodes, return_dict, render))
+        jobs.append(p)
+        p.start()
         
-        population[situation] = np.transpose(population_sit)
-        greedy_population[situation] = np.transpose(greedy_sit)
-        peaceful_population[situation] = np.transpose(n_greedy_sit)
-        avg_energy[situation] = np.transpose(avg_energy_sit)
-        avg_greedy_energy[situation] = np.transpose(avg_greedy_energy_sit)
-        avg_peaceful_energy[situation] = np.transpose(avg_peaceful_energy_sit)
-        deaths[situation] = np.transpose(deaths_sit)
-        births[situation] = np.transpose(births_sit)
+
+    for proc in jobs:
+        proc.join()
+    for return_dict in return_dicts_proc:
+        situation = return_dict["situation"]
+        population[situation] = np.transpose(return_dict["population_sit"])
+        greedy_population[situation] = np.transpose(return_dict["greedy_sit"])
+        peaceful_population[situation] = np.transpose(return_dict["n_greedy_sit"])
+        avg_energy[situation] = np.transpose(return_dict["avg_energy_sit"])
+        avg_greedy_energy[situation] = np.transpose(return_dict["avg_greedy_energy_sit"])
+        avg_peaceful_energy[situation] = np.transpose(return_dict["avg_peaceful_energy_sit"])
+        deaths[situation] = np.transpose(return_dict["deaths_sit"])
+        births[situation] = np.transpose(return_dict["births_sit"])
     
     if(filename != None):
         try:
