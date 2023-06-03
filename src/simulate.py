@@ -17,8 +17,7 @@ from agents.evolutive_agent import EvolutiveAgent
 
 COLOURS = ["orange", "blue", "green", "red", "purple", "brown", "pink", "gray", "olive", "cyan"]
 
-def run_multi_agent(environment: Env, starting_agents: list[RandomAgent], n_episodes: int, return_dict: dict, render=False) -> np.ndarray:
-
+def run_multi_agent(environment: Env, starting_agents: list[RandomAgent], n_episodes: int, return_dict: dict, situation: str, render=False) -> np.ndarray:
     population = np.zeros((n_episodes, environment.max_steps + 1))
     avg_energy = np.zeros((n_episodes, environment.max_steps + 1))
     avg_greedy_energy = np.zeros((n_episodes, environment.max_steps + 1))
@@ -28,10 +27,12 @@ def run_multi_agent(environment: Env, starting_agents: list[RandomAgent], n_epis
     births = np.zeros((n_episodes, environment.max_steps))
     deaths = np.zeros((n_episodes, environment.max_steps))
 
+    pid = os.getpid()
+
     for episode in range(n_episodes):
         agents = copy.deepcopy(starting_agents)
 
-        print("Starting episode {} in {}".format(episode + 1, n_episodes))
+        print("Starting episode {} in {} by pid {} for situation: {}.".format(episode + 1, n_episodes, pid, situation))
         steps = 0
         finished = False
         observations, total_agents_ep, greedy_agents_ep, peaceful_agents_ep, avg_energy_ep, greedy_avg_energy_ep, peaceful_avg_energy_ep = environment.reset(agents)
@@ -163,7 +164,7 @@ if __name__ == '__main__':
         return_dict["situation"] = situation
         return_dicts_proc.append(return_dict)
         environment = ShareOrTake(grid_shape=grid_shape, n_food=n_food, max_steps=n_steps, debug=False, policy=policies[situation])
-        p = multiprocessing.Process(target=run_multi_agent, args=(environment, agents, episodes, return_dict, render))
+        p = multiprocessing.Process(target=run_multi_agent, args=(environment, agents, episodes, return_dict, situation, render))
         jobs.append(p)
         p.start()
         
