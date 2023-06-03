@@ -1,0 +1,14 @@
+g 16 16
+f 25
+s 100
+filename evolutive.txt
+sit Evolutive full peaceful
+t
+a evolutive n 25 40 24
+sit Evolutive 50/50 greedy
+t
+a evolutive n 25 40 12
+a evolutive y 25 40 12
+sit Evolutive full greedy
+t
+a evolutive y 25 40 24

@@ -1,6 +1,7 @@
 g 16 16
 f 25
 s 100
+filename rational.txt
 sit Rational full peaceful
 t
 a rational n 25 40 24

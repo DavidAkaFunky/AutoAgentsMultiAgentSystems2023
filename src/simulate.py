@@ -54,7 +54,6 @@ def run_multi_agent(environment: Env, starting_agents: list[RandomAgent], n_epis
 
             steps += 1
             
-            # TODO: Add death and birth rates
             observations, total_agents_ep, greedy_agents_ep, peaceful_agents_ep, avg_energy_ep, greedy_avg_energy_ep, peaceful_avg_energy_ep, deaths_ep, births_ep, finished = environment.step(observations, steps)
             deaths[episode, steps - 1] = deaths_ep
             births[episode, steps - 1] = births_ep

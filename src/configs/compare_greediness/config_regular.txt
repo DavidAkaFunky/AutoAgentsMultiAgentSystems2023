@@ -1,6 +1,7 @@
 g 16 16
 f 25
 s 100
+filename regular.txt
 sit Regular full peaceful
 t
 a regular n 25 40 24

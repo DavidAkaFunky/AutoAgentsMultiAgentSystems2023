@@ -100,7 +100,7 @@ def compare_results_pop(results, filename, confidence=0.95, title="Agents Compar
     plt.grid(True, axis='y')
     plt.tight_layout()
     plt.legend(situations)
-    if(filename == None):
+    if filename == None:
         plt.show()
     else:
         plt.savefig("../results/{}-{}.png".format(filename, title))
@@ -127,19 +127,22 @@ def compare_results_other_metrics(results, filename  = None, confidence=0.95, ti
     situations = list(results.keys())
     results = list(results.values())
     x_pos = np.arange(len(results[0]))
-    _, axs = plt.subplots(2, math.ceil(len(colors) / 2), layout="constrained", figsize=(20, 5))
+    _, axs = plt.subplots(3, math.ceil(len(colors) / 3), layout="constrained", figsize=(20 * math.ceil(len(colors) / 3), 10))
+    print(axs)
     # To allow iteration even with only one subplot
-    if math.ceil(len(colors) / 2) == 1:
+    if len(colors) <= 3:
         axs = [axs]
     for i in range(len(axs)):
-        for j in range(math.ceil(len(colors) / 2)):
-            pos = i * math.ceil(len(colors) / 2) + j
+        for j in range(len(axs[i])):
+            pos = i * len(axs[i]) + j
+            print(i, j, pos)
+            if pos >= len(colors):
+                break
             results_i = results[pos]
             names = [1] + list(range(5, len(results_i) + 1, len(results_i) // 20))
             means = [result.mean() for result in results_i]
             std_devs = [result.std() for result in results_i]
             N = [result.size for result in results_i]
-
             errors = [standard_error(std_devs[i], N[i], confidence) for i in range(len(means))]
 
             axs[i][j].set_ylabel(f"Average {metric}")
@@ -149,7 +152,7 @@ def compare_results_other_metrics(results, filename  = None, confidence=0.95, ti
             axs[i][j].set_title(situations[pos])
             axs[i][j].yaxis.grid(True)
             axs[i][j].bar(x_pos, means, yerr=errors, align='center', alpha=0.5, color=colors[pos] if colors is not None else "gray", ecolor=colors[pos] if colors is not None else "gray", capsize=3)
-    if(filename == None):
+    if filename == None:
         plt.show()
     else:
         plt.savefig("../results/{}-{}.png".format(filename, title))

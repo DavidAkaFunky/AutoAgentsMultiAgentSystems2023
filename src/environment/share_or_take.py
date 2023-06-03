@@ -59,9 +59,9 @@ class ShareOrTake(gym.Env):
 
         greedy_agents = sum(self.agents[agent].is_greedy for agent in self.agents)
         peaceful_agents = len(self.agents) - greedy_agents
-        avg_energy = sum(self.agents[id].energy for id in self.agents) / len(self.agents)
-        greedy_avg_energy = sum(self.agents[id].energy for id in self.agents if self.agents[id].is_greedy) / greedy_agents
-        peaceful_avg_energy = sum(self.agents[id].energy for id in self.agents if not self.agents[id].is_greedy) / peaceful_agents
+        avg_energy = sum(self.agents[id].energy for id in self.agents) / len(self.agents) if len(self.agents) > 0 else 0
+        greedy_avg_energy = sum(self.agents[id].energy for id in self.agents if self.agents[id].is_greedy) / greedy_agents if greedy_agents > 0 else 0
+        peaceful_avg_energy = sum(self.agents[id].energy for id in self.agents if not self.agents[id].is_greedy) / peaceful_agents if peaceful_agents > 0 else 0
         
         return {id: self.observation(id) for id in self.agents}, \
                 len(self.agents), greedy_agents, peaceful_agents, \
