@@ -59,7 +59,7 @@ def standard_error(std_dev, n, confidence):
     """
     return z_table(confidence) * (std_dev / math.sqrt(n))
 
-def compare_results_pop(results, filename, confidence=0.95, title="Agents Comparison", colors=None, plot=False):
+def compare_results_pop(results, filename, confidence=0.95, title="Agents Comparison", colors=None, plot=False, metric="Population"):
 
     """Displays a bar plot comparing the performance of different agents/teams.
 
@@ -93,7 +93,7 @@ def compare_results_pop(results, filename, confidence=0.95, title="Agents Compar
             # Uncomment to get plot points
             # plt.plot(x_pos, means, "bo", color=colors[i] if colors is not None else "gray")
             plt.errorbar(range(len(results_i)), means, errors, capsize=3, linewidth=1, color=colors[i] if colors is not None else "gray")
-    plt.ylabel("Average population")
+    plt.ylabel("Average {}".format(metric))
     plt.xlabel("Step number")
     plt.xticks(names, names)
     plt.title(title)

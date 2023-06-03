@@ -194,7 +194,8 @@ if __name__ == '__main__':
         title="Population Comparison on 'Share or Take' Environment",
         plot=True,
         colors=COLOURS[:len(situations)],
-        filename = filename
+        filename = filename,
+        metric = "Population"
     )
 
     compare_results_pop(
@@ -202,7 +203,8 @@ if __name__ == '__main__':
         title="Greedy Population Comparison on 'Share or Take' Environment",
         plot=True,
         colors=COLOURS[:len(situations)],
-        filename = filename
+        filename = filename,
+        metric="Population"
     )
 
     compare_results_pop(
@@ -210,7 +212,8 @@ if __name__ == '__main__':
         title="Peaceful Comparison on 'Share or Take' Environment",
         plot=True,
         colors=COLOURS[:len(situations)],
-        filename = filename
+        filename = filename,
+        metric="Population"
     )
 
     compare_results_pop(
@@ -218,7 +221,8 @@ if __name__ == '__main__':
         title="Avg. Energy Comparison on 'Share or Take' Environment",
         plot=True,
         colors=COLOURS[:len(situations)],
-        filename = filename
+        filename = filename,
+        metric="Energy"
     )
 
     compare_results_pop(
@@ -226,7 +230,8 @@ if __name__ == '__main__':
         title="Avg. Energy (Greedy) Comparison on 'Share or Take' Environment",
         plot=True,
         colors=COLOURS[:len(situations)],
-        filename = filename
+        filename = filename,
+        metric="Energy"
     )
 
     compare_results_pop(
@@ -234,7 +239,8 @@ if __name__ == '__main__':
         title="Avg. Energy (Peaceful) Comparison on 'Share or Take' Environment",
         plot=True,
         colors=COLOURS[:len(situations)],
-        filename = filename
+        filename = filename,
+        metric="Energy"
     )
 
     compare_results_other_metrics(
