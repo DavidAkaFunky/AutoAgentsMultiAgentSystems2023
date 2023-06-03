@@ -12,12 +12,3 @@ a random y 25 40 12
 sit Random full greedy
 t
 a random y 25 40 24
-sit Random d greedy
-t
-a random y 25 40 24
-sit Random a greedy
-t
-a random y 25 40 24
-sit Random s greedy
-t
-a random y 25 40 24
