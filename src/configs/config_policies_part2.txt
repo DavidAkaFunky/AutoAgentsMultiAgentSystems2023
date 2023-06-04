@@ -1,19 +1,7 @@
-filename test_policies
+filename test_policies_part2
 g 16 16
 f 25
 s 100
-sit Random regular 50/50 greedy
-p RANDOM
-a regular n 25 40 12
-a regular y 25 40 12
-sit Benefit greedy 50/50 greedy
-p BENEFIT_GREEDY
-a regular n 25 40 12
-a regular y 25 40 12
-sit Benefit younger regular 50/50 greedy
-p BENEFIT_YOUNGER
-a regular n 25 40 12
-a regular y 25 40 12
 sit Benefit older regular 50/50 greedy
 p BENEFIT_OLDER
 a regular n 25 40 12
