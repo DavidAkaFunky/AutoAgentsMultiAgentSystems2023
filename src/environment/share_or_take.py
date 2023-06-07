@@ -83,7 +83,7 @@ class ShareOrTake(gym.Env):
             self.agent_id += 1
 
     def reproduce_agent(self, agent):
-        self.print_if_debug("Agent {} reproduced to form agent {}!".format(agent.id, self.agent_id))
+        self.print_if_debug(f"Agent {agent.id} reproduced to form agent {self.agent_id}!")
         new_agent = copy.deepcopy(agent)
         pos = self.get_empty_position_agent()
         if pos is None:
@@ -118,6 +118,9 @@ class ShareOrTake(gym.Env):
 
     def observation(self, id):
         agent = self.agents[id]
+        if agent.vision_range == 0:
+            return [], []
+
         [agent_row, agent_col] = agent.get_position()
 
         agents_pos = []
@@ -173,7 +176,7 @@ class ShareOrTake(gym.Env):
 
             # An agent can either eat or move in a given step
             if agent.has_eaten:
-               self.print_if_debug("Agent {} has already eaten!".format(agent.id))
+               self.print_if_debug(f"Agent {agent.id} has already eaten!")
                continue
             for action in agent.action():
                 if self.update_agent_pos(agent, action, rewards):
@@ -197,7 +200,7 @@ class ShareOrTake(gym.Env):
             else:
                 agent.has_eaten = False # Reset the agent's has_eaten flag
                 agent.age += 1
-                agent.adapt() # Update the agent's greediness parameter (if evolutive agent)
+                agent.adapt(self.debug) # Update the agent's greediness parameter (if evolutive agent)
                 if agent.energy >= agent.reproduction_threshold and self.reproduce_agent(agent):
                     births += 1
 
@@ -273,20 +276,20 @@ class ShareOrTake(gym.Env):
         return False
 
     def kill_agent(self, id):
-        self.print_if_debug("Agent {} has died!".format(id))
+        self.print_if_debug(f"Agent {id} has died!")
         pos = self.agents[id].get_position()
         self.grid[pos[0]][pos[1]] = PRE_IDS['empty']
         self.agents.pop(id)
 
     def share_or_take(self, agent1, agent2, pos):
-        agent1.share_or_take(agent2, self.food_energy)
-        agent2.share_or_take(agent1, self.food_energy)
+        agent1.share_or_take(agent2, self.food_energy, self.debug)
+        agent2.share_or_take(agent1, self.food_energy, False)
         self.food_pos.remove(pos)
         self.available_n_food -= 1
         self.grid[pos[0]][pos[1]] = PRE_IDS['empty']
 
     def agent_eat(self, agent, pos):
-        self.print_if_debug("Agent {} is eating food alone at {}!".format(agent.id, pos))
+        self.print_if_debug(f"Agent {agent.id} is eating food alone at {pos}!")
         agent.has_eaten = True
         self.food_pos.remove(pos)
         self.available_n_food -= 1

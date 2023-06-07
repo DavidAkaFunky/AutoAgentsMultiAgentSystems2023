@@ -1,0 +1,35 @@
+g 16 16
+f 25
+s 100
+filename tribal.txt
+sit 2 tribes
+t TRIBE A
+a regular n 25 40 12
+t TRIBE B
+a regular n 25 40 12
+sit 4 tribes
+t TRIBE A
+a regular n 25 40 6
+t TRIBE B
+a regular n 25 40 6
+t TRIBE C
+a regular n 25 40 6
+t TRIBE D
+a regular n 25 40 6
+sit 8 tribes
+t TRIBE A
+a regular n 25 40 3
+t TRIBE B
+a regular n 25 40 3
+t TRIBE C
+a regular n 25 40 3
+t TRIBE D
+a regular n 25 40 3
+t TRIBE E
+a regular n 25 40 3
+t TRIBE F
+a regular n 25 40 3
+t TRIBE G
+a regular n 25 40 3
+t TRIBE H
+a regular n 25 40 3

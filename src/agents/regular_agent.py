@@ -73,22 +73,16 @@ class RegularAgent(RandomAgent):
 
     def _close_horizontally(self, distances):
         if distances[1] > 0:
-            #print("Agent {} is going right".format(self.id))
             return RIGHT
         elif distances[1] < 0:
-            #print("Agent {} is going left".format(self.id))
             return LEFT
         else:
-            #print("Agent {} is staying".format(self.id))
             return STAY
 
     def _close_vertically(self, distances):
         if distances[0] > 0:
-            #print("Agent {} is going down".format(self.id))
             return DOWN
         elif distances[0] < 0:
-            #print("Agent {} is going up".format(self.id))
             return UP
         else:
-            #print("Agent {} is staying".format(self.id))
             return STAY

@@ -14,15 +14,17 @@ class TribalAgent(RegularAgent):
         self.name = "Tribal agent"
         self.tribe = tribe
 
-    def share_or_take(self, other, food_energy):
+    def share_or_take(self, other, food_energy, debug):
         self.has_eaten = True
         try:
             tribe = other.tribe
         except AttributeError:
             tribe = None
         if self.tribe == tribe:
+            self.print_if_debug(f"Agents {self.id} and {other.id} belong to the same tribe ({self.tribe}), splitting the food evenly.", debug)
             self.energy += food_energy * 0.5
         else:
+            self.print_if_debug(f"Agents {self.id} (from {self.tribe if self.tribe is not None else 'no tribe'}) and {other.id} (from {other.tribe if other.tribe is not None else 'no tribe'}) fought for food, none earned energy.", debug)
             pass # The energy earned with food is lost during the fight
 
     def __repr__(self) -> str:

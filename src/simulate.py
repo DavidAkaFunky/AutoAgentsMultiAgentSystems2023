@@ -17,23 +17,24 @@ from agents.evolutive_agent import EvolutiveAgent
 
 COLOURS = ["orange", "blue", "green", "red", "purple", "brown", "pink", "gray", "olive", "cyan"]
 
-def run_multi_agent(environment: Env, starting_agents: list[RandomAgent], n_episodes: int, return_dict: dict, situation: str, render=False) -> np.ndarray:
-    population = np.zeros((n_episodes, environment.max_steps + 1))
-    avg_energy = np.zeros((n_episodes, environment.max_steps + 1))
-    avg_greedy_energy = np.zeros((n_episodes, environment.max_steps + 1))
-    avg_peaceful_energy = np.zeros((n_episodes, environment.max_steps + 1))
-    population_greedy = np.zeros((n_episodes, environment.max_steps + 1))
-    population_peaceful = np.zeros((n_episodes, environment.max_steps + 1))
-    births = np.zeros((n_episodes, environment.max_steps))
-    deaths = np.zeros((n_episodes, environment.max_steps))
+def run_multi_agent(environment: Env, starting_agents: list[RandomAgent], n_episodes: int, return_dict: dict, situation: str, debug: bool, render: bool) -> np.ndarray:
+    population = np.zeros((environment.max_steps + 1, n_episodes))
+    avg_energy = np.zeros((environment.max_steps + 1, n_episodes))
+    avg_greedy_energy = np.zeros((environment.max_steps + 1, n_episodes))
+    avg_peaceful_energy = np.zeros((environment.max_steps + 1, n_episodes))
+    population_greedy = np.zeros((environment.max_steps + 1, n_episodes))
+    population_peaceful = np.zeros((environment.max_steps + 1, n_episodes))
+    births = np.zeros((environment.max_steps, n_episodes))
+    deaths = np.zeros((environment.max_steps, n_episodes))
 
     pid = os.getpid()
 
     for episode in range(n_episodes):
         agents = copy.deepcopy(starting_agents)
 
-        print("Starting episode {} in {} by pid {} for situation: {}.".format(episode + 1, n_episodes, pid, situation))
-        steps = 0
+        if debug:
+            print(f"Starting episode {episode + 1} in {n_episodes} by pid {pid} for situation: {situation}.")
+        step = 0
         finished = False
         observations, total_agents_ep, greedy_agents_ep, peaceful_agents_ep, avg_energy_ep, greedy_avg_energy_ep, peaceful_avg_energy_ep = environment.reset(agents)
 
@@ -41,41 +42,40 @@ def run_multi_agent(environment: Env, starting_agents: list[RandomAgent], n_epis
             agent.reset_parameters(agent.id)
 
         while True:
-            population[episode, steps] = total_agents_ep
-            population_greedy[episode, steps] = greedy_agents_ep
-            population_peaceful[episode, steps] = peaceful_agents_ep
-            avg_energy[episode, steps] = avg_energy_ep
-            avg_greedy_energy[episode, steps] = greedy_avg_energy_ep
-            avg_peaceful_energy[episode, steps] = peaceful_avg_energy_ep
+            population[step, episode] = total_agents_ep
+            population_greedy[step, episode] = greedy_agents_ep
+            population_peaceful[step, episode] = peaceful_agents_ep
+            avg_energy[step, episode] = avg_energy_ep
+            avg_greedy_energy[step, episode] = greedy_avg_energy_ep
+            avg_peaceful_energy[step, episode] = peaceful_avg_energy_ep
 
             if render:
                 environment.render()
                 time.sleep(2.5)
 
-            steps += 1
+            step += 1
             
-            observations, total_agents_ep, greedy_agents_ep, peaceful_agents_ep, avg_energy_ep, greedy_avg_energy_ep, peaceful_avg_energy_ep, deaths_ep, births_ep, finished = environment.step(observations, steps)
-            deaths[episode, steps - 1] = deaths_ep
-            births[episode, steps - 1] = births_ep
+            observations, total_agents_ep, greedy_agents_ep, peaceful_agents_ep, avg_energy_ep, greedy_avg_energy_ep, peaceful_avg_energy_ep, deaths_ep, births_ep, finished = environment.step(observations, step)
+            deaths[step - 1, episode] = deaths_ep
+            births[step - 1, episode] = births_ep
 
             if finished:
                 break
 
-        population[episode, steps] = total_agents_ep
-        population_greedy[episode, steps] = greedy_agents_ep
-        population_peaceful[episode, steps] = peaceful_agents_ep
-        avg_energy[episode, steps] = avg_energy_ep
-        avg_greedy_energy[episode, steps] = greedy_avg_energy_ep
-        avg_peaceful_energy[episode, steps] = peaceful_avg_energy_ep
+        population[step, episode] = total_agents_ep
+        population_greedy[step, episode] = greedy_agents_ep
+        population_peaceful[step, episode] = peaceful_agents_ep
+        avg_energy[step, episode] = avg_energy_ep
+        avg_greedy_energy[step, episode] = greedy_avg_energy_ep
+        avg_peaceful_energy[step, episode] = peaceful_avg_energy_ep
 
     if render:
         environment.render()
         environment.close()
-            
-    # TODO Return energy-related metrics
+
     return_dict["population_sit"] = population
     return_dict["greedy_sit"] = population_greedy
-    return_dict["n_greedy_sit"] = population_peaceful
+    return_dict["peaceful_sit"] = population_peaceful
     return_dict["avg_energy_sit"] = avg_energy
     return_dict["avg_greedy_energy_sit"] = avg_greedy_energy
     return_dict["avg_peaceful_energy_sit"] = avg_peaceful_energy
@@ -137,12 +137,14 @@ if __name__ == '__main__':
 
     parser.add_argument("input_file", type=argparse.FileType('r'))
     parser.add_argument("--render", action="store_true")
-    parser.add_argument("--episodes", type=int, default=100)
+    parser.add_argument("--debug", action="store_true")
+    parser.add_argument("--episodes", type=int, default=200)
     opt = parser.parse_args()
 
     input_file = opt.input_file
     render = opt.render
     episodes = opt.episodes
+    debug = opt.debug
     situations, grid_shape, n_food, n_steps, policies, filename = parse_config(input_file)
     
     population = {}
@@ -162,31 +164,29 @@ if __name__ == '__main__':
         return_dict = manager.dict()
         return_dict["situation"] = situation
         return_dicts_proc.append(return_dict)
-        environment = ShareOrTake(grid_shape=grid_shape, n_food=n_food, max_steps=n_steps, debug=False, policy=policies[situation])
-        p = multiprocessing.Process(target=run_multi_agent, args=(environment, agents, episodes, return_dict, situation, render))
+        environment = ShareOrTake(grid_shape=grid_shape, n_food=n_food, max_steps=n_steps, debug=debug, policy=policies[situation])
+        p = multiprocessing.Process(target=run_multi_agent, args=(environment, agents, episodes, return_dict, situation, debug, render))
         jobs.append(p)
         p.start()
-        
 
     for proc in jobs:
         proc.join()
     for return_dict in return_dicts_proc:
         situation = return_dict["situation"]
-        population[situation] = np.transpose(return_dict["population_sit"])
-        greedy_population[situation] = np.transpose(return_dict["greedy_sit"])
-        peaceful_population[situation] = np.transpose(return_dict["n_greedy_sit"])
-        avg_energy[situation] = np.transpose(return_dict["avg_energy_sit"])
-        avg_greedy_energy[situation] = np.transpose(return_dict["avg_greedy_energy_sit"])
-        avg_peaceful_energy[situation] = np.transpose(return_dict["avg_peaceful_energy_sit"])
-        deaths[situation] = np.transpose(return_dict["deaths_sit"])
-        births[situation] = np.transpose(return_dict["births_sit"])
+        population[situation] = return_dict["population_sit"]
+        greedy_population[situation] = return_dict["greedy_sit"]
+        peaceful_population[situation] = return_dict["peaceful_sit"]
+        avg_energy[situation] = return_dict["avg_energy_sit"]
+        avg_greedy_energy[situation] = return_dict["avg_greedy_energy_sit"]
+        avg_peaceful_energy[situation] = return_dict["avg_peaceful_energy_sit"]
+        deaths[situation] = return_dict["deaths_sit"]
+        births[situation] = return_dict["births_sit"]
     
-    if(filename != None):
+    if filename is not None:
         try:
             os.mkdir("../results")
-            print("results folder created")
         except:
-            print("Results folder already created, moving on")
+            pass
 
     compare_results_pop(
         population,

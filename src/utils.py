@@ -1,7 +1,7 @@
 import math
 import numpy as np
 import matplotlib.pyplot as plt
-
+from matplotlib.ticker import StrMethodFormatter
 
 def z_table(confidence):
     """Hand-coded Z-Table
@@ -82,18 +82,18 @@ def compare_results_pop(results, filename, confidence=0.95, title="Agents Compar
     results = list(results.values())
     names = range(0, len(results[0]), len(results[0]) // 20)
     plt.figure().set_figwidth(10)
+    plt.gca().yaxis.set_major_formatter(StrMethodFormatter('{x:,.1f}')) # 1 decimal places
     for i in range(len(results)):
         results_i = results[i]
         means = [result.mean() for result in results_i]
         std_devs = [result.std() for result in results_i]
         N = [result.size for result in results_i]
-
         errors = [standard_error(std_devs[j], N[j], confidence) for j in range(len(means))]
         if plot:
             # Uncomment to get plot points
             # plt.plot(x_pos, means, "bo", color=colors[i] if colors is not None else "gray")
             plt.errorbar(range(len(results_i)), means, errors, capsize=3, linewidth=1, color=colors[i] if colors is not None else "gray")
-    plt.ylabel("Average {}".format(metric))
+    plt.ylabel(f"Average {metric}")
     plt.xlabel("Step number")
     plt.xticks(names, names)
     plt.title(title)
@@ -103,7 +103,7 @@ def compare_results_pop(results, filename, confidence=0.95, title="Agents Compar
     if filename == None:
         plt.show()
     else:
-        plt.savefig("../results/{}-{}.png".format(filename, title))
+        plt.savefig(f"../results/{filename}-{title}.png")
 
 def compare_results_other_metrics(results, filename  = None, confidence=0.95, title="Agents Comparison", metric="", colors=None, plot=False):
 
@@ -127,32 +127,26 @@ def compare_results_other_metrics(results, filename  = None, confidence=0.95, ti
     situations = list(results.keys())
     results = list(results.values())
     x_pos = np.arange(len(results[0]))
-    _, axs = plt.subplots(3, math.ceil(len(colors) / 3), layout="constrained", figsize=(20 * math.ceil(len(colors) / 3), 10))
-    print(axs)
+    _, axs = plt.subplots(len(colors), 1, layout="constrained", figsize=(6 * len(colors), 8))
     # To allow iteration even with only one subplot
-    if len(colors) <= 3:
+    if len(colors) == 1:
         axs = [axs]
-    for i in range(len(axs)):
-        for j in range(len(axs[i])):
-            pos = i * len(axs[i]) + j
-            print(i, j, pos)
-            if pos >= len(colors):
-                break
-            results_i = results[pos]
-            names = [1] + list(range(5, len(results_i) + 1, len(results_i) // 20))
-            means = [result.mean() for result in results_i]
-            std_devs = [result.std() for result in results_i]
-            N = [result.size for result in results_i]
-            errors = [standard_error(std_devs[i], N[i], confidence) for i in range(len(means))]
-
-            axs[i][j].set_ylabel(f"Average {metric}")
-            axs[i][j].set_xlabel("Step number")
-            axs[i][j].set_xticks(names)
-            axs[i][j].set_xticklabels(names)
-            axs[i][j].set_title(situations[pos])
-            axs[i][j].yaxis.grid(True)
-            axs[i][j].bar(x_pos, means, yerr=errors, align='center', alpha=0.5, color=colors[pos] if colors is not None else "gray", ecolor=colors[pos] if colors is not None else "gray", capsize=3)
+    for pos in range(len(axs)):
+        results_i = results[pos]
+        names = [1] + list(range(5, len(results_i) + 1, len(results_i) // 20))
+        means = [result.mean() for result in results_i]
+        std_devs = [result.std() for result in results_i]
+        N = [result.size for result in results_i]
+        errors = [standard_error(std_devs[i], N[i], confidence) for i in range(len(means))]
+        axs[pos].yaxis.set_major_formatter(StrMethodFormatter('{x:,.1f}')) # 1 decimal places
+        axs[pos].set_ylabel(f"Average {metric}")
+        axs[pos].set_xlabel("Step number")
+        axs[pos].set_xticks(names)
+        axs[pos].set_xticklabels(names)
+        axs[pos].set_title(situations[pos])
+        axs[pos].yaxis.grid(True)
+        axs[pos].bar(x_pos, means, yerr=errors, align='center', alpha=0.5, color=colors[pos] if colors is not None else "gray", ecolor=colors[pos] if colors is not None else "gray", capsize=3)
     if filename == None:
         plt.show()
     else:
-        plt.savefig("../results/{}-{}.png".format(filename, title))
+        plt.savefig(f"../results/{filename}-{title}.png")
