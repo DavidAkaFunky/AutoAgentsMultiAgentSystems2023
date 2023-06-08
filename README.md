@@ -4,10 +4,10 @@ Before running any simulation we need to setup a configuration file containing t
 
 - `filename file`: If specified the output will be written in `file`
 - `g x y`: `x` and `y` are the grid dimensions
-- `f energy_value`: Describes que amount of energy each food contains
+- `f amount`: Describes que amount of food scattered in the grid
 - `s num_steps`: `num_steps` Determines the number of steps for each episode
 - `sit name`: It's possible to specifie different scenarios regarding the number of each agent type. `name` is the name associated to situation
-- `p POLICY`: Policie used for agent priorities(better explanation in the project report). Associated to a situation
+- `p POLICY`: Policy used for agent priorities(better explanation in the project report). Associated to a situation
 - `t tribe`: Defines a tribe. If present, the following agents belong to that tribe
 - `a type greediness(n/y) starting_energy reproduction_threshold amount`: Defines an `amount` of agents with type `type`
 
