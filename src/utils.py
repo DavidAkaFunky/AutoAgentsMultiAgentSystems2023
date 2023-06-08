@@ -138,7 +138,7 @@ def compare_results_other_metrics(results, filename  = None, confidence=0.95, ti
         std_devs = [result.std() for result in results_i]
         N = [result.size for result in results_i]
         errors = [standard_error(std_devs[i], N[i], confidence) for i in range(len(means))]
-        axs[pos].yaxis.set_major_formatter(StrMethodFormatter('{x:,.1f}')) # 1 decimal places
+        axs[pos].yaxis.set_major_formatter(StrMethodFormatter('{x:,.1f} %')) # 1 decimal places
         axs[pos].set_ylabel(f"Average {metric}")
         axs[pos].set_xlabel("Step number")
         axs[pos].set_xticks(names)

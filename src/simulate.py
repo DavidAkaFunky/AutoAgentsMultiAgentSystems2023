@@ -24,8 +24,8 @@ def run_multi_agent(environment: Env, starting_agents: list[RandomAgent], n_epis
     avg_peaceful_energy = np.zeros((environment.max_steps + 1, n_episodes))
     population_greedy = np.zeros((environment.max_steps + 1, n_episodes))
     population_peaceful = np.zeros((environment.max_steps + 1, n_episodes))
-    births = np.zeros((environment.max_steps, n_episodes))
-    deaths = np.zeros((environment.max_steps, n_episodes))
+    birth_rates = np.zeros((environment.max_steps, n_episodes))
+    death_rates = np.zeros((environment.max_steps, n_episodes))
 
     pid = os.getpid()
 
@@ -55,9 +55,9 @@ def run_multi_agent(environment: Env, starting_agents: list[RandomAgent], n_epis
 
             step += 1
             
-            observations, total_agents_ep, greedy_agents_ep, peaceful_agents_ep, avg_energy_ep, greedy_avg_energy_ep, peaceful_avg_energy_ep, deaths_ep, births_ep, finished = environment.step(observations, step)
-            deaths[step - 1, episode] = deaths_ep
-            births[step - 1, episode] = births_ep
+            observations, total_agents_ep, greedy_agents_ep, peaceful_agents_ep, avg_energy_ep, greedy_avg_energy_ep, peaceful_avg_energy_ep, death_rate_ep, birth_rate_ep, finished = environment.step(observations, step)
+            death_rates[step - 1, episode] = death_rate_ep
+            birth_rates[step - 1, episode] = birth_rate_ep
 
             if finished:
                 break
@@ -79,8 +79,8 @@ def run_multi_agent(environment: Env, starting_agents: list[RandomAgent], n_epis
     return_dict["avg_energy_sit"] = avg_energy
     return_dict["avg_greedy_energy_sit"] = avg_greedy_energy
     return_dict["avg_peaceful_energy_sit"] = avg_peaceful_energy
-    return_dict["deaths_sit"] = deaths
-    return_dict["births_sit"] = births
+    return_dict["death_rates_sit"] = death_rates
+    return_dict["birth_rates_sit"] = birth_rates
 
 def parse_config(input_file) -> dict[str, list[RandomAgent]]:
     situations = {}
@@ -179,8 +179,8 @@ if __name__ == '__main__':
         avg_energy[situation] = return_dict["avg_energy_sit"]
         avg_greedy_energy[situation] = return_dict["avg_greedy_energy_sit"]
         avg_peaceful_energy[situation] = return_dict["avg_peaceful_energy_sit"]
-        deaths[situation] = return_dict["deaths_sit"]
-        births[situation] = return_dict["births_sit"]
+        deaths[situation] = return_dict["death_rates_sit"]
+        births[situation] = return_dict["birth_rates_sit"]
     
     if filename is not None:
         try:
@@ -203,7 +203,7 @@ if __name__ == '__main__':
         plot=True,
         colors=COLOURS[:len(situations)],
         filename = filename,
-        metric="Population"
+        metric= "Population"
     )
 
     compare_results_pop(
@@ -244,16 +244,16 @@ if __name__ == '__main__':
 
     compare_results_other_metrics(
         deaths,
-        title="Deaths Comparison on 'Share or Take' Environment",
-        metric="Deaths per step",
+        title="Death Rate Comparison on 'Share or Take' Environment",
+        metric="Death Rate",
         colors=COLOURS[:len(situations)],
         filename = filename
     )
 
     compare_results_other_metrics(
         births,
-        title="Births Comparison on 'Share or Take' Environment",
-        metric="Births per step",
+        title="Birth Rate Comparison on 'Share or Take' Environment",
+        metric="Birth Rate",
         colors=COLOURS[:len(situations)],
         filename = filename
     )

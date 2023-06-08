@@ -213,7 +213,7 @@ class ShareOrTake(gym.Env):
         return {id: self.observation(id) for id in self.agents}, \
                 len(self.agents), greedy_agents, peaceful_agents, \
                 avg_energy, greedy_avg_energy, peaceful_avg_energy, \
-                deaths, births, finished
+                deaths * 100 / len(agents), births * 100 / len(agents), finished
 
     def sort_by_policy(self, agents):
         random.shuffle(agents)
