@@ -1,10 +1,10 @@
 # AutoAgentsMultiAgentSystems2023
 
-# Project
+## Project
 
 Final grade: **18**
 
-#
+##
 
 Before running any simulation we need to setup a configuration file containing the specifications of the simulation:
 
