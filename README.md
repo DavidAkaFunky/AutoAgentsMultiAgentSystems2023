@@ -1,5 +1,9 @@
 # AutoAgentsMultiAgentSystems2023
 
+Final grade: **18**
+
+#
+
 Before running any simulation we need to setup a configuration file containing the specifications of the simulation:
 
 - `filename file`: If specified the output will be written in `file`
